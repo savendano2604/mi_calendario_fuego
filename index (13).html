@@ -1,0 +1,2625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FLARE | Alerta temprana de incendios</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet (mapa) + leaflet-heat (mapa de calor) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <!-- ECharts (gráficos del calendario) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+
+  <!-- Nuestros datos: focos armonizados en celdas de 11 km, por año y mes -->
+  <script src="datos/mapa.js"></script>
+  <!-- Departamentos de Colombia guardados en el proyecto (se crea con descargar_departamentos.py) -->
+  <script src="datos/departamentos.js" onerror="console.warn('Falta datos/departamentos.js')"></script>
+  <!-- Municipios de Colombia (se crea con descargar_municipios.py) -->
+  <script src="datos/municipios.js" onerror="console.warn('Falta datos/municipios.js')"></script>
+
+  <style>
+    /* ====== COLORES: cámbienlos aquí y cambia toda la página ====== */
+    :root {
+      /* Opción A · Carbón y Oro */
+      --dorado: #c9a54c;        /* color principal: botones, títulos, línea del menú */
+      --sobre-dorado: #121212;  /* texto encima del dorado */
+      --oscuro: #121212;        /* fondo de la página */
+      --tarjeta: #1c1c1e;       /* fondo de tarjetas y paneles */
+      --borde: #3a3a3c;         /* bordes de botones y tarjetas */
+      --gris: #a5a29b;          /* textos secundarios */
+      --blanco: #f7f6f2;        /* texto principal y menú */
+      --verde: #3ccf7a;
+      --rojo: #ff4d4d;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Inter", sans-serif; background: var(--oscuro); color: var(--blanco); }
+    html { scroll-behavior: smooth; }
+
+    /* ====== BARRA SUPERIOR NARANJA ====== */
+    .barra-top {
+      background: var(--dorado); color: var(--sobre-dorado); font-size: 13px; font-weight: 600;
+      padding: 6px 40px; display: flex; justify-content: space-between;
+    }
+
+    /* ====== MENÚ ====== */
+    nav {
+      background: var(--blanco); color: var(--oscuro);
+      padding: 14px 40px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 1000;
+    }
+    .logo { font-weight: 800; font-size: 24px; }
+    .logo span { color: var(--dorado); }
+    nav ul { list-style: none; display: flex; gap: 28px; }
+    nav a { color: var(--oscuro); text-decoration: none; font-weight: 600; transition: .2s; }
+    nav a:hover { color: var(--dorado); }
+
+    /* ====== BOTONES ====== */
+    .boton {
+      display: inline-block; padding: 12px 28px; border-radius: 999px;
+      background: var(--dorado); color: var(--sobre-dorado);
+      font-weight: 600; text-decoration: none; transition: .25s;
+      border: 2px solid var(--dorado);
+    }
+    .boton:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(201,165,76,.5); }
+    .boton.blanco { background: transparent; color: var(--blanco); }
+    .boton.blanco:hover { background: var(--dorado); color: var(--sobre-dorado); }
+
+    /* ====== PORTADA ====== */
+    .portada {
+      display: grid; grid-template-columns: 1fr 1fr;
+      min-height: 85vh; background: var(--tarjeta); overflow: hidden;
+    }
+    .portada-texto { padding: 80px 40px 80px 80px; display: flex; flex-direction: column; justify-content: center; }
+    .etiqueta { color: var(--dorado); font-weight: 600; letter-spacing: 2px; font-size: 13px; }
+    .portada h1 { font-size: 52px; line-height: 1.1; margin: 14px 0 18px; }
+    .portada h1 span { color: var(--dorado); }
+    .portada p { opacity: .8; max-width: 480px; margin-bottom: 30px; }
+    .botones { display: flex; gap: 14px; flex-wrap: wrap; }
+
+    .portada-foto {
+      background: url("fuego.jpg") center/cover, linear-gradient(135deg, #c9a54c, #3d3420 55%, #121212);
+      border-top-left-radius: 50% 100%;
+      border-left: 10px solid var(--dorado);
+      animation: entrar 1s ease-out;
+    }
+    @keyframes entrar { from { opacity: 0; transform: translateX(80px); } }
+
+    /* ====== SECCIONES ====== */
+    .seccion { padding: 80px 80px; scroll-margin-top: 70px; }
+    .seccion h2 { font-size: 38px; margin: 10px 0 8px; }
+    .seccion h2 span { color: var(--dorado); }
+    .intro { opacity: .8; max-width: 720px; margin-bottom: 24px; }
+
+    /* ====== CONTROLES DE PERIODO ====== */
+    .filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px; }
+    .filtros label { font-size: 14px; opacity: .8; }
+    .filtros select {
+      font-family: inherit; font-size: 14px; font-weight: 600; color: var(--blanco);
+      background: var(--tarjeta); border: 2px solid #3a3a3c; border-radius: 999px;
+      padding: 8px 16px; cursor: pointer;
+    }
+    .filtros select:hover, .filtros select:focus { border-color: var(--dorado); outline: none; }
+    .estado-carga { font-size: 13px; opacity: .7; }
+
+    /* ====== MAPA + PANEL ====== */
+    .mapa-y-panel { display: grid; grid-template-columns: 3fr 2fr; gap: 24px; }
+    #mapa-leaflet { height: 600px; border-radius: 20px; border: 3px solid var(--dorado); background: #111; }
+
+    /* Tarjeta flotante (hover) — esquina superior izquierda del mapa */
+    .info-card {
+      background: rgba(24,24,26,.95); color: var(--blanco); border: 1px solid #3a3a3c;
+      border-radius: 14px; padding: 12px 16px; min-width: 220px;
+      font: 13px "Inter", sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+    .info-card .titulo { font-size: 16px; font-weight: 800; }
+    .info-card .valor { font-size: 22px; font-weight: 800; color: var(--dorado); }
+    .info-card .suave { opacity: .7; }
+
+    /* Leyenda — esquina inferior derecha */
+    .leyenda {
+      background: rgba(24,24,26,.95); color: var(--blanco); border: 1px solid #3a3a3c;
+      border-radius: 14px; padding: 12px 14px; width: 220px; font: 12px "Inter", sans-serif;
+    }
+    .leyenda b { display: block; margin-bottom: 6px; font-size: 13px; }
+    .leyenda .barra-calor { height: 12px; border-radius: 6px; }
+    .leyenda .extremos { display: flex; justify-content: space-between; margin-top: 4px; opacity: .8; }
+    .leyenda .bloque + .bloque { margin-top: 12px; padding-top: 10px; border-top: 1px solid #2e2e30; }
+    .leyenda .clase { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+    .leyenda .clase i { width: 18px; height: 12px; border-radius: 3px; border: 1px solid #ffffff33; }
+
+    /* Control de capas en tema oscuro */
+    .leaflet-control-layers {
+      background: rgba(24,24,26,.95) !important; color: var(--blanco) !important;
+      border: 1px solid #3a3a3c !important; border-radius: 12px !important; font: 13px "Inter", sans-serif;
+    }
+    .leaflet-control-layers-separator { border-top-color: #2e2e30 !important; }
+    .leaflet-container { font-family: "Inter", sans-serif; }
+    /* Con la capa de municipios encendida, el mouse atraviesa los departamentos (solo se ve su borde) */
+    .municipios-on .leaflet-deptos-pane, .municipios-on .leaflet-deptos-pane * { pointer-events: none !important; }
+
+    /* ====== PANEL DE INFORMACIÓN ====== */
+    .panel { background: var(--tarjeta); border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 18px; }
+    .ubicacion { font-size: 13px; opacity: .7; letter-spacing: 1px; }
+    .panel h3 { font-size: 26px; line-height: 1.2; }
+    .region { opacity: .75; font-size: 14px; margin-top: 4px; }
+    .resumen { font-size: 16px; line-height: 1.6; }
+    .resumen b { color: var(--dorado); }
+    .cifras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .cifra { background: var(--oscuro); border-radius: 14px; padding: 14px; }
+    .cifra .numero { font-size: 26px; font-weight: 800; color: var(--dorado); }
+    .cifra .texto { opacity: .75; font-size: 13px; }
+    .bajando { color: var(--verde) !important; }
+    .subiendo { color: var(--rojo) !important; }
+    .que-es { font-size: 12.5px; opacity: .6; border-top: 1px solid #2e2e30; padding-top: 12px; }
+    .boton-chico {
+      align-self: flex-start; font-family: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
+      background: transparent; color: var(--blanco); border: 2px solid #3a3a3c; border-radius: 999px; padding: 6px 14px;
+    }
+    .boton-chico:hover { border-color: var(--dorado); }
+
+    /* ====== CALENDARIO ====== */
+    .cal-controles { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+    .segmentado { display: inline-flex; background: var(--tarjeta); border: 2px solid #3a3a3c; border-radius: 999px; padding: 4px; }
+    .segmentado button {
+      font-family: inherit; font-weight: 600; font-size: 14px; cursor: pointer;
+      background: transparent; border: 0; color: var(--blanco); opacity: .75;
+      padding: 8px 18px; border-radius: 999px; transition: .2s;
+    }
+    .segmentado button:hover { opacity: 1; }
+    .segmentado button.activo { background: var(--dorado); color: var(--sobre-dorado); opacity: 1; }
+    .explicacion {
+      background: var(--tarjeta); border-left: 4px solid var(--dorado); border-radius: 10px;
+      padding: 12px 16px; font-size: 14.5px; max-width: 900px; margin-bottom: 20px;
+    }
+    .explicacion.aviso { border-left-color: #f5a524; }
+    .cal-rejilla { display: grid; grid-template-columns: 3fr 2fr; gap: 24px; align-items: start; }
+    .cal-lateral { display: flex; flex-direction: column; gap: 24px; }
+    .tarjeta-cal { background: var(--tarjeta); border-radius: 20px; padding: 22px; }
+    .tarjeta-cal h3 { font-size: 18px; margin-bottom: 10px; }
+    #graficoCalendario { height: 720px; }
+    #graficoMeses { height: 230px; }
+    .cal-temporada { font-size: 15px; line-height: 1.6; }
+    .cal-temporada b { color: var(--dorado); }
+    .cal-ayuda { font-size: 13px; opacity: .7; margin-bottom: 6px; }
+    @media (max-width: 800px) {
+      .cal-rejilla { grid-template-columns: 1fr; }
+      #graficoCalendario { height: 640px; }
+    }
+
+    /* ====== ALERTA ====== */
+    .alerta-rejilla { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 24px; align-items: stretch; }
+    .semaforo-fila { display: flex; gap: 20px; align-items: center; }
+    .luces { background: #0b0b0c; border-radius: 40px; padding: 12px 10px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+    .luz { width: 40px; height: 40px; border-radius: 50%; background: #2c2c2e; transition: .4s; }
+    .luz.on[data-luz="rojo"] { background: #ff3b3b; box-shadow: 0 0 22px #ff3b3b; }
+    .luz.on[data-luz="amarillo"] { background: #ffc233; box-shadow: 0 0 22px #ffc233; }
+    .luz.on[data-luz="verde"] { background: #3ccf7a; box-shadow: 0 0 22px #3ccf7a; }
+    .alerta-nivel { font-size: 24px; font-weight: 800; line-height: 1.2; margin-bottom: 8px; }
+    .alerta-texto { font-size: 14.5px; line-height: 1.6; opacity: .9; }
+    .alerta-texto b { color: var(--dorado); }
+    .cuenta-numero { font-size: 46px; font-weight: 800; color: var(--dorado); line-height: 1.1; }
+    .cuenta-texto { font-size: 14.5px; line-height: 1.6; margin: 6px 0 12px; }
+    .cuenta-texto b { color: var(--dorado); }
+    .recomendaciones { padding-left: 18px; font-size: 13.5px; line-height: 1.6; opacity: .85; }
+    .ranking { list-style: none; counter-reset: puesto; display: flex; flex-direction: column; gap: 8px; }
+    .ranking li {
+      counter-increment: puesto; display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center;
+      background: var(--oscuro); border-radius: 12px; padding: 8px 12px; cursor: pointer; transition: .2s; border: 2px solid transparent;
+    }
+    .ranking li::before { content: counter(puesto); font-weight: 800; color: var(--dorado); font-size: 18px; }
+    .ranking li:hover { border-color: var(--dorado); }
+    .ranking li.actual { border-color: #ffffff; }
+    .ranking .rk-nombre { font-weight: 600; font-size: 14px; line-height: 1.2; }
+    .ranking .rk-depto { font-size: 12px; opacity: .65; }
+    .ranking .rk-valor { text-align: right; font-weight: 800; font-size: 14px; }
+    .ranking .rk-comp { font-size: 11.5px; font-weight: 600; }
+    #graficoAcumulado { height: 320px; }
+    @media (max-width: 1100px) { .alerta-rejilla { grid-template-columns: 1fr 1fr; } .alerta-ranking { grid-column: 1 / -1; } }
+    @media (max-width: 800px) { .alerta-rejilla { grid-template-columns: 1fr; } }
+
+    /* ====== PÁGINAS SEPARADAS ====== */
+    .pagina { display: none; }
+    .pagina.visible { display: block; animation: aparecerPagina .45s ease-out; }
+    .portada.pagina.visible { display: grid; }
+    .seccion.pagina { min-height: calc(100vh - 130px); }
+    @keyframes aparecerPagina { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+    /* Menú: línea naranja que se desliza hasta la página activa */
+    nav ul { position: relative; }
+    nav ul a { position: relative; display: inline-block; padding: 6px 2px; transition: color .25s, transform .25s; }
+    nav ul a:hover { transform: translateY(-2px); }
+    nav ul a.activa { color: var(--dorado); animation: brilloMenu 2.4s ease-in-out infinite; }
+    @keyframes brilloMenu { 50% { text-shadow: 0 0 12px rgba(201,165,76,.55); } }
+    nav ul .indicador {
+      position: absolute; bottom: -2px; left: 0; width: 0; height: 3px; border-radius: 3px;
+      background: var(--dorado); box-shadow: 0 0 10px rgba(201,165,76,.8); pointer-events: none;
+      transition: left .45s cubic-bezier(.6,.05,.3,1), width .45s cubic-bezier(.6,.05,.3,1);
+    }
+
+    /* Botones para pasar de una página a otra */
+    .nav-paginas {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+      margin-top: 48px; padding-top: 24px; border-top: 1px solid #2e2e30;
+    }
+    .portada .nav-paginas { margin-top: 28px; padding-top: 20px; }
+    .boton-pagina {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 999px;
+      font-weight: 600; text-decoration: none; color: var(--blanco); border: 2px solid #3a3a3c; transition: .25s;
+    }
+    .boton-pagina:hover { border-color: var(--dorado); transform: translateY(-2px); }
+    .boton-pagina.siguiente { background: var(--dorado); border-color: var(--dorado); color: var(--sobre-dorado); }
+    .boton-pagina.siguiente:hover { box-shadow: 0 10px 25px rgba(201,165,76,.45); }
+    .boton-pagina .flecha { transition: transform .25s; }
+    .boton-pagina.siguiente:hover .flecha { transform: translateX(4px); }
+    .boton-pagina.anterior:hover .flecha { transform: translateX(-4px); }
+
+    /* Etiqueta del lugar elegido (Calendario y Alerta) */
+    .chip-lugar {
+      display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 20px;
+      background: var(--tarjeta); border: 2px solid #3a3a3c; border-radius: 999px; padding: 6px 8px 6px 18px; font-size: 14.5px;
+    }
+    .chip-lugar b { color: var(--dorado); }
+    .chip-lugar a, .chip-lugar button {
+      font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none;
+      color: var(--blanco); background: var(--oscuro); border: 1px solid #3a3a3c; border-radius: 999px; padding: 5px 12px;
+    }
+    .chip-lugar a:hover, .chip-lugar button:hover { border-color: var(--dorado); }
+
+    /* ====== NOSOTROS ====== */
+    .equipo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .integrante { background: var(--tarjeta); border-radius: 20px; padding: 22px; text-align: center; }
+    .integrante .avatar { font-size: 42px; }
+    .integrante .nombre { font-weight: 800; margin-top: 6px; }
+    .integrante .rol { font-size: 13px; opacity: .7; }
+    .pasos-metodo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .paso-metodo { background: var(--tarjeta); border-radius: 20px; padding: 22px; font-size: 14.5px; line-height: 1.6; }
+    .paso-metodo b { color: var(--dorado); }
+    .creditos { font-size: 14px; line-height: 1.9; opacity: .85; padding-left: 20px; }
+    @media (max-width: 900px) { .equipo { grid-template-columns: repeat(2, 1fr); } .pasos-metodo { grid-template-columns: 1fr; } }
+
+    /* En celular: una sola columna */
+    @media (max-width: 800px) {
+      .portada { grid-template-columns: 1fr; }
+      .portada-texto { padding: 50px 24px; }
+      .portada h1 { font-size: 36px; }
+      .portada-foto { min-height: 300px; }
+      .barra-top { display: none; }
+      nav { flex-wrap: wrap; padding: 10px 16px; gap: 6px; }
+      nav ul { order: 3; width: 100%; overflow-x: auto; gap: 20px; padding-bottom: 6px; font-size: 14px; }
+      nav > .boton { padding: 8px 16px; }
+      .chip-lugar { border-radius: 18px; }
+      .seccion { padding: 50px 24px; }
+      .mapa-y-panel { grid-template-columns: 1fr; }
+      #mapa-leaflet { height: 460px; }
+      .info-card { min-width: 0; max-width: 180px; }
+      .leyenda { width: 170px; }
+    }
+
+    /* =========================================================
+       ORGANIZACIÓN PROFESIONAL (misma estructura en todas las páginas)
+       ========================================================= */
+    :root { --borde-suave: #2a2a2c; }
+    .seccion { padding: 56px 40px 64px; }
+    .contenido { max-width: 1240px; margin: 0 auto; }
+
+    /* Encabezado de cada página */
+    .encabezado-pagina {
+      display: flex; justify-content: space-between; align-items: flex-end; gap: 20px 32px; flex-wrap: wrap;
+      padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--borde-suave);
+    }
+    .encabezado-pagina .paso {
+      display: flex; align-items: center; gap: 10px; text-transform: uppercase;
+      color: var(--dorado); font-weight: 600; font-size: 12.5px; letter-spacing: 2.5px;
+    }
+    .num-paso {
+      display: inline-grid; place-items: center; min-width: 30px; height: 26px; padding: 0 6px; border-radius: 7px;
+      background: rgba(201,165,76,.14); border: 1px solid rgba(201,165,76,.45); color: var(--dorado);
+      font-size: 12px; font-weight: 700; letter-spacing: 0;
+    }
+    .encabezado-pagina h2 { font-size: clamp(28px, 3.2vw, 40px); line-height: 1.15; margin: 10px 0 8px; }
+    .encabezado-pagina h2 span { color: var(--dorado); }
+    .encabezado-pagina p { color: var(--gris); max-width: 640px; font-size: 15px; }
+    .encabezado-pagina .chip-lugar { margin: 0; }
+
+    /* Barra de herramientas (filtros y botones de cada página) */
+    .barra-herramientas {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-bottom: 20px;
+      background: var(--tarjeta); border: 1px solid var(--borde-suave); border-radius: 14px; padding: 12px 16px;
+    }
+    .grupo-herramienta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .etq-herramienta { font-size: 11.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gris); }
+    .ayuda-herramienta { font-size: 13px; color: var(--gris); flex: 1; min-width: 220px; }
+    .barra-herramientas .estado-carga:empty { display: none; }
+    .barra-herramientas select {
+      font-family: inherit; font-size: 14px; font-weight: 600; color: var(--blanco); cursor: pointer;
+      background: var(--oscuro); border: 1px solid var(--borde); border-radius: 10px; padding: 8px 12px;
+    }
+    .barra-herramientas select:hover, .barra-herramientas select:focus { border-color: var(--dorado); outline: none; }
+    .barra-herramientas .segmentado { background: var(--oscuro); border-width: 1px; }
+
+    /* Tarjetas con encabezado uniforme */
+    .card { background: var(--tarjeta); border: 1px solid var(--borde-suave); border-radius: 16px; padding: 20px 22px; }
+    .card-cabecera { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+    .card-cabecera h3 { font-size: 16px; font-weight: 700; line-height: 1.3; margin: 0; }
+    .card-cabecera p { font-size: 12.5px; color: var(--gris); margin: 3px 0 0; line-height: 1.45; }
+    .card-icono {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center;
+      background: rgba(201,165,76,.12); border: 1px solid rgba(201,165,76,.3); color: var(--dorado);
+    }
+    .card-icono svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .card-icono.chico { width: 28px; height: 28px; border-radius: 8px; }
+    .card-icono.chico svg { width: 15px; height: 15px; }
+
+    /* Página Mapa */
+    .mapa-y-panel { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr); gap: 20px; align-items: stretch; }
+    .card-mapa { display: flex; flex-direction: column; }
+    .card-mapa #mapa-leaflet { flex: 1; height: auto; min-height: 560px; border: 1px solid var(--borde); border-radius: 12px; }
+    .panel.card { padding: 22px; gap: 18px; border-radius: 16px; }
+    .panel .ubicacion { font-size: 11.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gris); opacity: 1; }
+    .panel #nombreLugar { font-size: 24px; font-weight: 800; margin-top: 2px; }
+    .panel .region { color: var(--gris); opacity: 1; font-size: 13px; }
+    .panel .cifra { background: var(--oscuro); border: 1px solid var(--borde-suave); border-radius: 12px; }
+    .panel .cifra .numero { font-size: 24px; }
+    .panel .cifra .texto { color: var(--gris); opacity: 1; font-size: 12.5px; }
+    .panel .resumen { font-size: 14.5px; line-height: 1.65; padding: 14px 16px; background: var(--oscuro); border-radius: 12px; border-left: 3px solid var(--dorado); }
+    .panel .que-es { display: flex; gap: 10px; align-items: flex-start; opacity: 1; font-size: 12.5px; color: var(--gris); border-top: 1px solid var(--borde-suave); padding-top: 14px; margin-top: auto; }
+    .panel .que-es p { margin: 0; }
+
+    /* Página Calendario */
+    .explicacion { background: var(--tarjeta); border: 1px solid var(--borde-suave); border-left: 3px solid var(--dorado); border-radius: 12px; max-width: none; }
+    .cal-rejilla { grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr); gap: 20px; }
+    .cal-lateral { gap: 20px; }
+
+    /* Página Alerta */
+    .alerta-rejilla { gap: 20px; }
+    .alerta-rejilla .card { display: flex; flex-direction: column; }
+    .luces { border: 1px solid var(--borde-suave); }
+
+    /* Página Nosotros */
+    .equipo { gap: 20px; margin-bottom: 20px; }
+    .integrante.card { text-align: center; padding: 26px 18px; }
+    .integrante .avatar {
+      width: 64px; height: 64px; margin: 0 auto 10px; border-radius: 50%; display: grid; place-items: center;
+      background: rgba(201,165,76,.12); border: 1px solid rgba(201,165,76,.45); color: var(--dorado); font-weight: 800; font-size: 20px;
+    }
+    .integrante .rol { color: var(--gris); opacity: 1; }
+    .pasos-metodo { margin-bottom: 0; gap: 16px; }
+    .paso-metodo { background: var(--oscuro); border: 1px solid var(--borde-suave); border-radius: 12px; }
+    .paso-metodo .num-paso { margin-bottom: 10px; display: grid; width: 30px; }
+    .paso-metodo b { display: block; margin-bottom: 4px; }
+    .creditos { margin: 0; color: var(--gris); opacity: 1; }
+
+    /* Inicio: cifras clave */
+    .cifras-portada { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 30px; max-width: 560px; }
+    .cifras-portada div { border-left: 2px solid var(--dorado); padding: 2px 0 2px 12px; }
+    .cifras-portada b { display: block; font-size: 24px; color: var(--blanco); }
+    .cifras-portada span { font-size: 12px; color: var(--gris); line-height: 1.35; display: block; }
+
+    /* Pie de página */
+    .pie { border-top: 1px solid var(--borde-suave); padding: 22px 40px; font-size: 13px; color: var(--gris); background: var(--oscuro); }
+    .pie-fila { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .pie b { color: var(--blanco); }
+    .pie b span { color: var(--dorado); }
+
+    .nav-paginas { border-top-color: var(--borde-suave); margin-top: 36px; }
+
+    @media (max-width: 1000px) {
+      .mapa-y-panel, .cal-rejilla { grid-template-columns: 1fr; }
+      .card-mapa #mapa-leaflet { min-height: 460px; }
+    }
+    @media (max-width: 800px) {
+      .seccion { padding: 36px 16px 48px; }
+      .cifras-portada { grid-template-columns: repeat(2, 1fr); }
+      .pie { padding: 20px 16px; }
+    }
+
+    /* =========================================================
+       ESTILO "LIQUID GLASS" (inspirado en iOS / macOS)
+       Todo lo de aquí abajo pisa los estilos anteriores.
+       ========================================================= */
+    :root {
+      --vidrio: rgba(255, 255, 255, 0.055);          /* relleno del cristal */
+      --vidrio-fuerte: rgba(255, 255, 255, 0.085);
+      --vidrio-borde: rgba(255, 255, 255, 0.12);     /* borde de luz */
+      --vidrio-brillo: rgba(255, 255, 255, 0.16);    /* reflejo superior */
+      --desenfoque: blur(26px) saturate(170%);
+      --sombra-flotante: 0 1px 0 var(--vidrio-brillo) inset, 0 20px 50px -20px rgba(0,0,0,.65), 0 2px 8px rgba(0,0,0,.25);
+      --resorte: cubic-bezier(.2, .8, .2, 1);        /* curva de animación tipo Apple */
+      --fuente: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    }
+    body { font-family: var(--fuente); background: #0a0a0b; -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; }
+    h1, h2, h3, .logo, .numero, .cuenta-numero, .alerta-nivel { letter-spacing: -0.025em; }
+    button, select { font-family: var(--fuente) !important; }
+
+    /* ---------- Fondo ambiental: luces difuminadas que se mueven lento ---------- */
+    .fondo-ambiente { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: #0a0a0b; }
+    .fondo-ambiente span { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55; will-change: transform; }
+    .fondo-ambiente .luz-1 { width: 46vw; height: 46vw; left: -10vw; top: -14vw; background: radial-gradient(circle, rgba(201,165,76,.55), transparent 65%); animation: flotar1 28s ease-in-out infinite alternate; }
+    .fondo-ambiente .luz-2 { width: 40vw; height: 40vw; right: -12vw; top: 18vh; background: radial-gradient(circle, rgba(150,110,60,.45), transparent 65%); animation: flotar2 34s ease-in-out infinite alternate; }
+    .fondo-ambiente .luz-3 { width: 52vw; height: 52vw; left: 20vw; bottom: -30vw; background: radial-gradient(circle, rgba(120,130,150,.30), transparent 65%); animation: flotar3 40s ease-in-out infinite alternate; }
+    .fondo-ambiente::after { /* textura muy suave para que el cristal se note */
+      content: ""; position: absolute; inset: 0; opacity: .05;
+      background-image: radial-gradient(rgba(255,255,255,.6) 1px, transparent 1px); background-size: 3px 3px;
+    }
+    @keyframes flotar1 { to { transform: translate(14vw, 10vh) scale(1.12); } }
+    @keyframes flotar2 { to { transform: translate(-12vw, 14vh) scale(.92); } }
+    @keyframes flotar3 { to { transform: translate(-10vw, -12vh) scale(1.08); } }
+
+    /* ---------- Cristal: tarjetas y paneles ---------- */
+    .card, .panel.card, .barra-herramientas, .explicacion, .chip-lugar, .tarjeta-cal {
+      background:
+        radial-gradient(520px circle at var(--mx, 50%) var(--my, -40%), rgba(255,255,255,.075), transparent 42%),
+        linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
+      -webkit-backdrop-filter: var(--desenfoque); backdrop-filter: var(--desenfoque);
+      border: 1px solid var(--vidrio-borde);
+      box-shadow: var(--sombra-flotante);
+    }
+    .card { border-radius: 22px; padding: 24px; transition: transform .5s var(--resorte), box-shadow .5s var(--resorte), border-color .4s; }
+    .card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.2); box-shadow: 0 1px 0 rgba(255,255,255,.2) inset, 0 30px 60px -24px rgba(0,0,0,.75), 0 0 0 1px rgba(201,165,76,.08); }
+    .card-mapa:hover { transform: none; }            /* el mapa no se mueve (para no molestar al arrastrar) */
+    .barra-herramientas { border-radius: 18px; }
+    .explicacion { border-radius: 16px; border-left: 1px solid var(--vidrio-borde); box-shadow: var(--sombra-flotante), inset 3px 0 0 var(--dorado); }
+
+    /* Elementos internos: cristal más suave (sin desenfoque, para que todo vaya fluido) */
+    .panel .cifra, .paso-metodo, .ranking li, .panel .resumen, .luces {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 1px 0 rgba(255,255,255,.06) inset;
+      transition: transform .45s var(--resorte), background .3s, border-color .3s;
+    }
+    .panel .cifra:hover, .paso-metodo:hover { transform: translateY(-2px); background: rgba(255,255,255,.07); }
+    .panel .resumen { border-left: 1px solid rgba(255,255,255,.08); box-shadow: inset 3px 0 0 var(--dorado); }
+    .ranking li:hover { background: rgba(201,165,76,.10); border-color: rgba(201,165,76,.45); transform: translateX(3px); }
+    .ranking li.actual { border-color: rgba(255,255,255,.7); }
+    .luces { background: rgba(0,0,0,.35); }
+    .card-icono { background: linear-gradient(180deg, rgba(201,165,76,.22), rgba(201,165,76,.08)); border-color: rgba(201,165,76,.35); box-shadow: 0 1px 0 rgba(255,255,255,.15) inset; }
+
+    /* ---------- Menú tipo macOS: barra de cristal + píldora deslizante ---------- */
+    .barra-top { background: rgba(10,10,11,.55); color: var(--dorado); border-bottom: 1px solid rgba(255,255,255,.06);
+                 -webkit-backdrop-filter: var(--desenfoque); backdrop-filter: var(--desenfoque); font-weight: 500; letter-spacing: .02em; }
+    nav {
+      background: rgba(18,18,20,.55); color: var(--blanco);
+      -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+      border-bottom: 1px solid rgba(255,255,255,.08); box-shadow: 0 10px 30px -15px rgba(0,0,0,.6);
+    }
+    .logo { color: var(--blanco); }
+    nav ul a { color: rgba(247,246,242,.78); font-weight: 500; z-index: 1; padding: 7px 4px; }
+    nav ul a:hover { color: var(--blanco); transform: none; }
+    nav ul a.activa { color: var(--dorado); font-weight: 600; animation: none; }
+    nav ul .indicador {
+      top: 50%; bottom: auto; height: 36px; transform: translateY(-50%); z-index: 0; border-radius: 999px;
+      background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 6px 18px -6px rgba(0,0,0,.6);
+      transition: left .55s var(--resorte), width .55s var(--resorte);
+    }
+
+    /* ---------- Botones ---------- */
+    .boton, .boton-pagina, .boton-chico { position: relative; overflow: hidden; transition: transform .45s var(--resorte), box-shadow .45s var(--resorte), background .3s, border-color .3s; }
+    .boton, .boton-pagina.siguiente {
+      background: linear-gradient(180deg, #dcbc68, #c09a3e); border: 1px solid rgba(255,255,255,.25);
+      box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, 0 10px 24px -10px rgba(201,165,76,.7);
+    }
+    .boton::after, .boton-pagina.siguiente::after {        /* destello que cruza el botón */
+      content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); transform: skewX(-20deg);
+      transition: left .8s var(--resorte);
+    }
+    .boton:hover::after, .boton-pagina.siguiente:hover::after { left: 130%; }
+    .boton:hover, .boton-pagina:hover { transform: translateY(-2px) scale(1.02); }
+    .boton.blanco, .boton-pagina:not(.siguiente), .boton-chico {
+      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.18); color: var(--blanco);
+      -webkit-backdrop-filter: var(--desenfoque); backdrop-filter: var(--desenfoque); box-shadow: 0 1px 0 rgba(255,255,255,.14) inset;
+    }
+    .boton.blanco::after { display: none; }
+    .boton.blanco:hover, .boton-pagina:not(.siguiente):hover, .boton-chico:hover { background: rgba(255,255,255,.13); border-color: rgba(255,255,255,.3); color: var(--blanco); }
+
+    /* Controles segmentados tipo iOS */
+    .segmentado, .barra-herramientas .segmentado { background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.1); padding: 3px; }
+    .segmentado button { transition: background .35s var(--resorte), color .25s; }
+    .segmentado button.activo { background: linear-gradient(180deg, #dcbc68, #c09a3e); box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 4px 12px -4px rgba(0,0,0,.6); }
+    .barra-herramientas select, .chip-lugar a, .chip-lugar button {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); transition: background .25s, border-color .25s;
+    }
+    .barra-herramientas select option { background: #1c1c1e; }
+    .chip-lugar { border-radius: 999px; }
+
+    /* ---------- Portada ---------- */
+    .portada { background: transparent; }
+    .portada h1 span, .encabezado-pagina h2 span {
+      background: linear-gradient(100deg, #f1d999 0%, #c9a54c 45%, #e9cd86 70%, #b48f38 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      background-size: 200% 100%; animation: brilloOro 8s ease-in-out infinite;
+    }
+    @keyframes brilloOro { 50% { background-position: 100% 0; } }
+    .portada h1 { font-weight: 800; }
+    .portada-foto { border-left: 1px solid rgba(255,255,255,.25); box-shadow: -30px 0 80px -30px rgba(201,165,76,.35); }
+    .cifras-portada div {
+      border: 1px solid var(--vidrio-borde); border-radius: 16px; padding: 12px 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      -webkit-backdrop-filter: var(--desenfoque); backdrop-filter: var(--desenfoque); box-shadow: var(--sombra-flotante);
+    }
+
+    /* ---------- Mapa y gráficos ---------- */
+    .card-mapa #mapa-leaflet { border: 1px solid rgba(255,255,255,.1); border-radius: 16px; }
+    .info-card, .leyenda, .leaflet-control-layers {
+      background: rgba(22,22,24,.62) !important; border: 1px solid rgba(255,255,255,.14) !important;
+      -webkit-backdrop-filter: var(--desenfoque); backdrop-filter: var(--desenfoque);
+      box-shadow: 0 1px 0 rgba(255,255,255,.12) inset, 0 12px 30px -10px rgba(0,0,0,.6) !important; border-radius: 16px !important;
+    }
+    .leaflet-control-zoom a { background: rgba(22,22,24,.7) !important; color: #fff !important; border-color: rgba(255,255,255,.12) !important; }
+
+    /* ---------- Pie ---------- */
+    .pie { background: rgba(10,10,11,.5); -webkit-backdrop-filter: var(--desenfoque); backdrop-filter: var(--desenfoque); border-top: 1px solid rgba(255,255,255,.07); }
+    .encabezado-pagina { border-bottom-color: rgba(255,255,255,.08); }
+    .nav-paginas { border-top-color: rgba(255,255,255,.08); }
+
+    /* ---------- Apariciones (fade-in hacia arriba, escalonado) ---------- */
+    .revelar { opacity: 0; transform: translateY(26px) scale(.985); filter: blur(4px); }
+    .revelar.revelado {
+      opacity: 1; transform: none; filter: none;
+      transition: opacity .8s var(--resorte), transform .9s var(--resorte), filter .8s var(--resorte);
+      transition-delay: var(--retraso, 0ms);
+    }
+    .pagina.visible { animation: none; }   /* ahora aparecen las piezas una por una */
+
+    /* Si la persona pidió "reducir movimiento" en su sistema, se quitan las animaciones */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .revelar { opacity: 1; transform: none; filter: none; }
+    }
+    /* Navegadores sin desenfoque: cristal más opaco para que se lea bien */
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .card, .barra-herramientas, nav, .info-card, .leyenda { background: rgba(28,28,30,.94) !important; }
+    }
+
+    /* ====== CALENDARIO MÁS CLARO ====== */
+    .cal-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+    .kpi.card { padding: 16px 18px; border-radius: 18px; }
+    .kpi .k-et { font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: var(--gris); }
+    .kpi .k-val { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin: 4px 0 2px; color: var(--blanco); }
+    .kpi .k-sub { font-size: 12.5px; color: var(--gris); line-height: 1.4; }
+    .k-bien { color: #3ccf7a !important; } .k-mal { color: #ff6b6b !important; } .k-oro { color: var(--dorado) !important; }
+    .como-leer { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: -4px 0 10px; }
+    .como-leer > div {
+      display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--gris); line-height: 1.35;
+      background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07); border-radius: 12px; padding: 8px 10px;
+    }
+    .como-leer b { color: var(--blanco); font-weight: 600; }
+    .cl-num {
+      flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700;
+      color: var(--sobre-dorado); background: linear-gradient(180deg, #dcbc68, #c09a3e);
+    }
+    .da-fila { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+    .da-año { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; color: var(--dorado); line-height: 1; }
+    .da-etiqueta { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+    .da-texto { font-size: 14px; line-height: 1.6; margin: 10px 0 14px; }
+    .da-texto b { color: var(--blanco); }
+    .mini-meses { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; align-items: end; height: 64px; }
+    .mini-meses i { display: block; border-radius: 4px 4px 2px 2px; min-height: 3px; transition: height .5s var(--resorte, ease); }
+    .mini-meses i.futuro { background: repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 3px, transparent 3px 6px) !important; height: 100% !important; opacity: .5; }
+    .mini-etq { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; font-size: 10px; color: var(--gris); text-align: center; margin-top: 4px; }
+    @media (max-width: 1000px) { .cal-kpis, .como-leer { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    /* ====== VIAJE EN EL TIEMPO ====== */
+    .mapa-envoltura { position: relative; flex: 1; display: flex; min-height: 560px; }
+    .mapa-envoltura #mapa-leaflet { flex: 1; }
+    .viaje { margin-top: 20px; position: relative; }
+    .viaje .card-cabecera { align-items: center; }
+    .viaje-acciones { margin-left: auto; display: flex; gap: 8px; }
+    .viaje-años {
+      position: relative; display: grid; grid-template-columns: repeat(26, minmax(0, 1fr)); gap: 6px;
+      height: 210px; align-items: end; padding: 58px 4px 0;
+    }
+    .vb {
+      position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+      background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; color: var(--gris);
+    }
+    .vb-barra {
+      width: 100%; border-radius: 8px 8px 4px 4px; min-height: 4px; background: linear-gradient(180deg, var(--c), rgba(255,255,255,.04));
+      box-shadow: 0 1px 0 rgba(255,255,255,.25) inset; opacity: .7;
+      transition: height .7s var(--resorte), opacity .3s, transform .4s var(--resorte), box-shadow .3s;
+      transform-origin: bottom;
+    }
+    .vb:hover .vb-barra, .vb:focus-visible .vb-barra { opacity: 1; transform: scaleX(1.12); box-shadow: 0 0 18px -2px var(--c), 0 1px 0 rgba(255,255,255,.35) inset; }
+    .vb.activa .vb-barra { opacity: 1; box-shadow: 0 0 0 2px var(--blanco), 0 0 22px -2px var(--c); }
+    .vb.en-curso .vb-barra { background: repeating-linear-gradient(135deg, var(--c) 0 6px, rgba(255,255,255,.08) 6px 10px); }
+    .vb-año { font-size: 10.5px; margin-top: 6px; white-space: nowrap; transition: color .2s; }
+    .vb:hover .vb-año, .vb.activa .vb-año { color: var(--blanco); font-weight: 700; }
+    .vb-hito {
+      position: absolute; top: -30px; left: 50%; transform: translateX(-50%); white-space: nowrap; z-index: 2;
+      font-size: 10.5px; font-weight: 600; color: var(--dorado); padding: 3px 8px; border-radius: 999px;
+      background: rgba(201,165,76,.12); border: 1px solid rgba(201,165,76,.4);
+    }
+    .vb-hito.alto { top: -54px; }
+    .vb-hito.alto::after { height: 30px; bottom: -31px; }
+    .vb-hito::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 1px; height: 6px; background: rgba(201,165,76,.6); }
+
+    /* Tarjeta flotante del año */
+    .viaje-linea { position: relative; }
+    .viaje-pop {
+      position: absolute; bottom: calc(100% - 40px); transform: translate(-50%, 10px) scale(.96); width: 220px; z-index: 5; pointer-events: none;
+      opacity: 0; transition: opacity .25s, transform .35s var(--resorte);
+      padding: 14px 16px; border-radius: 18px; background: rgba(28,28,30,.93); border: 1px solid rgba(255,255,255,.16);
+      -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
+      box-shadow: 0 1px 0 rgba(255,255,255,.15) inset, 0 20px 40px -12px rgba(0,0,0,.7);
+    }
+    .viaje-pop.visible { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    .pop-año { font-size: 22px; font-weight: 800; color: var(--dorado); letter-spacing: -0.03em; }
+    .pop-año small { font-size: 11px; color: var(--gris); font-weight: 500; }
+    .pop-num { font-size: 18px; font-weight: 700; }
+    .pop-num small { font-size: 12px; color: var(--gris); font-weight: 500; }
+    .pop-comp { font-size: 12.5px; color: var(--gris); margin: 2px 0 10px; }
+    .pop-comp.mal { color: #ff6b6b; } .pop-comp.bien { color: #3ccf7a; }
+    .pop-meses { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; height: 40px; align-items: end; }
+    .pop-meses i { display: block; border-radius: 3px 3px 1px 1px; }
+    .pop-meses i.vacio { height: 100%; background: repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 3px, transparent 3px 6px); }
+    .pop-pie { font-size: 11.5px; color: var(--gris); margin-top: 8px; line-height: 1.4; }
+    .pop-pie b { color: var(--blanco); }
+
+    /* Fichas de los meses */
+    .viaje-meses {
+      display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .6s var(--resorte), opacity .4s, margin .6s var(--resorte);
+    }
+    .viaje-meses > div { overflow: hidden; }
+    .viaje-meses.visible { grid-template-rows: 1fr; opacity: 1; margin-top: 18px; }
+    .vm-cabecera { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); }
+    .vm-cabecera h4 { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; color: var(--dorado); }
+    .vm-cabecera span { font-size: 13px; color: var(--gris); }
+    .vm-cabecera .vm-botones { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .fichas { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 8px; }
+    .ficha {
+      position: relative; overflow: hidden; cursor: pointer; font-family: inherit; text-align: left; color: var(--blanco);
+      padding: 10px 10px 14px; border-radius: 14px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1);
+      transition: transform .4s var(--resorte), background .3s, border-color .3s, box-shadow .3s;
+    }
+    .ficha:hover:not(:disabled) { transform: translateY(-3px); background: rgba(255,255,255,.08); }
+    .ficha:disabled { opacity: .35; cursor: default; }
+    .f-nombre { display: block; font-size: 12px; font-weight: 700; }
+    .f-valor { display: block; font-size: 11px; color: var(--gris); margin-top: 2px; }
+    .f-nivel { position: absolute; left: 0; bottom: 0; height: 4px; width: calc(var(--t) * 100%); background: var(--c); border-radius: 0 4px 0 0; }
+    .ficha.activa { border-color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); box-shadow: 0 0 22px -6px var(--c); transform: translateY(-3px); }
+    .reproduciendo .ficha.activa::after {      /* barra que avanza mientras se reproduce */
+      content: ""; position: absolute; left: 0; top: 0; height: 2px; background: var(--blanco); opacity: .8;
+      animation: avanzar var(--paso-viaje, 1600ms) linear forwards;
+    }
+    @keyframes avanzar { from { width: 0; } to { width: 100%; } }
+
+    /* Etiqueta grande flotando sobre el mapa */
+    .insignia {
+      position: absolute; top: 14px; left: 50%; z-index: 500; pointer-events: none; text-align: center; min-width: 230px;
+      transform: translate(-50%, -12px) scale(.96); opacity: 0; transition: opacity .4s, transform .5s var(--resorte);
+      padding: 12px 20px 14px; border-radius: 20px; background: rgba(22,22,24,.6); border: 1px solid rgba(255,255,255,.16);
+      -webkit-backdrop-filter: blur(24px) saturate(170%); backdrop-filter: blur(24px) saturate(170%);
+      box-shadow: 0 1px 0 rgba(255,255,255,.15) inset, 0 18px 40px -14px rgba(0,0,0,.7);
+    }
+    .insignia.visible { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    .insignia.cambia .ins-fecha { animation: entraFecha .55s var(--resorte); }
+    @keyframes entraFecha { from { opacity: 0; transform: translateY(8px); filter: blur(4px); } }
+    .ins-fecha { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+    .ins-lugar { font-size: 11.5px; color: var(--gris); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 1px; }
+    .ins-num { font-size: 13px; color: var(--gris); margin: 6px 0 6px; }
+    .ins-num b { font-size: 20px; color: var(--dorado); font-weight: 800; }
+    .ins-chip { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
+    .ins-chip.mal { color: #ff6b6b; border-color: rgba(255,107,107,.4); background: rgba(255,107,107,.1); }
+    .ins-chip.bien { color: #3ccf7a; border-color: rgba(60,207,122,.4); background: rgba(60,207,122,.1); }
+
+    @media (max-width: 900px) {
+      .viaje-años { gap: 3px; height: 160px; }
+      .vb-año { font-size: 9px; }
+      .vb-hito { display: none; }
+      .fichas { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      .viaje .card-cabecera { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Fondo ambiental para el efecto de cristal -->
+  <div class="fondo-ambiente" aria-hidden="true"><span class="luz-1"></span><span class="luz-2"></span><span class="luz-3"></span></div>
+
+  <div class="barra-top">
+    <span>🛰️ Datos satelitales de NASA FIRMS · MODIS + VIIRS</span>
+    <span>NASA Space Apps Challenge 2026</span>
+  </div>
+
+  <nav>
+    <div class="logo">🔥 FL<span>ARE</span></div>
+    <ul>
+      <li><a href="#inicio">Inicio</a></li>
+      <li><a href="#mapa">Mapa</a></li>
+      <li><a href="#calendario">Calendario</a></li>
+      <li><a href="#alerta">Alerta</a></li>
+      <li><a href="#nosotros">Nosotros</a></li>
+      <li class="indicador" aria-hidden="true"></li>
+    </ul>
+    <a href="#mapa" class="boton">Explorar</a>
+  </nav>
+
+  <!-- ====================== PORTADA ====================== -->
+  <section class="portada pagina" id="inicio">
+    <div class="portada-texto">
+      <span class="etiqueta">FIRE LONG-TERM ANALYSIS & RAPID EARLY-WARNING</span>
+      <h1>25 años de fuego, <span>un solo calendario</span></h1>
+      <p>Unimos los registros de los satélites MODIS y VIIRS de la NASA para saber cuándo y dónde se quema Colombia, y avisar antes de que llegue la temporada crítica.</p>
+      <div class="botones">
+        <a href="#mapa" class="boton">▶ Explorar el mapa</a>
+        <a href="#alerta" class="boton blanco">Ver alerta de hoy</a>
+      </div>
+      <div class="cifras-portada">
+        <div><b>25</b><span>años de registros satelitales</span></div>
+        <div><b>2</b><span>satélites armonizados: MODIS y VIIRS</span></div>
+        <div><b>1.120</b><span>municipios analizados</span></div>
+        <div><b>3 %</b><span>de error en la validación</span></div>
+      </div>
+    </div>
+    <div class="portada-foto"></div>
+  </section>
+
+  <!-- ====================== MAPA ====================== -->
+  <section class="seccion pagina" id="mapa">
+    <div class="contenido">
+      <header class="encabezado-pagina">
+        <div>
+          <div class="paso"><span class="num-paso">01</span> ¿Dónde se quema?</div>
+          <h2>El mapa del fuego en <span>Colombia</span></h2>
+          <p>Explora dónde se concentran los focos de fuego de los últimos 25 años, por municipio y por departamento.</p>
+        </div>
+      </header>
+
+      <div class="barra-herramientas">
+        <div class="grupo-herramienta">
+          <span class="etq-herramienta">Periodo</span>
+          <select id="filtroAño" aria-label="Año"></select>
+          <select id="filtroMes" aria-label="Mes"></select>
+        </div>
+        <div class="ayuda-herramienta">Pasa el cursor sobre un municipio · haz clic para ver el detalle · cambia las capas arriba a la derecha del mapa</div>
+        <span class="estado-carga" id="estadoCarga">Cargando departamentos…</span>
+      </div>
+
+      <div class="mapa-y-panel">
+        <div class="card card-mapa">
+          <div class="card-cabecera">
+            <span class="card-icono" data-icono="mapa"></span>
+            <div><h3>Mapa interactivo</h3><p>Mapa de calor de focos + municipios y departamentos</p></div>
+          </div>
+          <div class="mapa-envoltura">
+            <div id="mapa-leaflet"></div>
+            <!-- Etiqueta grande del "Viaje en el tiempo" -->
+            <div class="insignia" id="insignia" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <aside class="card panel">
+          <div class="card-cabecera">
+            <span class="card-icono" data-icono="pin"></span>
+            <div>
+              <div class="ubicacion">Estás viendo</div>
+              <h3 id="nombreLugar">Colombia</h3>
+              <div class="region" id="subtituloLugar"></div>
+            </div>
+          </div>
+          <div class="cifras">
+            <div class="cifra">
+              <div class="numero" id="numTotal">0</div>
+              <div class="texto" id="textoTotal">focos de fuego en el periodo</div>
+            </div>
+            <div class="cifra">
+              <div class="numero" id="numParte">—</div>
+              <div class="texto">de todo el fuego de Colombia</div>
+            </div>
+            <div class="cifra">
+              <div class="numero" id="numPeorAño">—</div>
+              <div class="texto" id="textoPeorAño">el peor año</div>
+            </div>
+            <div class="cifra">
+              <div class="numero" id="numTendencia">—</div>
+              <div class="texto" id="textoTendencia">desde 2001</div>
+            </div>
+          </div>
+          <p class="resumen" id="resumen"></p>
+          <button class="boton-chico" id="botonVolver" style="display:none">← Volver a Colombia</button>
+          <div class="que-es">
+            <span class="card-icono chico" data-icono="info"></span>
+            <p><b>¿Qué es un foco de fuego?</b> Cada vez que un satélite de la NASA detecta fuego en un área de 11 × 11 km durante un día, contamos un foco. Los números están armonizados (MODIS + VIIRS), así que se pueden comparar todos los años.</p>
+          </div>
+        </aside>
+      </div>
+
+      <!-- ====== VIAJE EN EL TIEMPO ====== -->
+      <div class="card viaje" id="viaje">
+        <div class="card-cabecera">
+          <span class="card-icono" data-icono="reloj"></span>
+          <div><h3>Viaje en el tiempo</h3><p>Pasa el mouse sobre un año para ver su resumen · haz clic para viajar a ese año en el mapa</p></div>
+          <div class="viaje-acciones"><button class="boton-chico" id="viajeTodo">▶ Ver los 25 años</button></div>
+        </div>
+        <div class="viaje-linea">
+          <div class="viaje-años" id="viajeAños"></div>
+          <div class="viaje-pop" id="viajePop" aria-hidden="true"></div>
+        </div>
+        <div class="viaje-meses" id="viajeMeses">
+          <div>
+            <div class="vm-cabecera">
+              <h4 id="viajeAñoTitulo"></h4><span>Elige un mes o reprodúcelo completo</span>
+              <div class="vm-botones">
+                <button class="boton-chico" id="viajePlayAño">▶ Reproducir</button>
+                <button class="boton-chico" id="viajeSalir">✕ Ver todos los años</button>
+              </div>
+            </div>
+            <div class="fichas" id="viajeFichas"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== CALENDARIO ====================== -->
+  <section class="seccion pagina" id="calendario">
+    <div class="contenido">
+      <header class="encabezado-pagina">
+        <div>
+          <div class="paso"><span class="num-paso">02</span> ¿Cuándo se quema?</div>
+          <h2>Calendario de quema de <span id="calLugar">Colombia</span></h2>
+          <p>Cada fila es un año y cada cuadro es un mes. Muestra el lugar que elijas en el mapa.</p>
+        </div>
+        <div class="chip-lugar" data-chip></div>
+      </header>
+
+      <div class="barra-herramientas">
+        <div class="grupo-herramienta">
+          <span class="etq-herramienta">Datos</span>
+          <div class="segmentado" role="group" aria-label="Armonización">
+            <button data-cal-arm="0">Sin armonizar</button>
+            <button data-cal-arm="1" class="activo">Armonizado</button>
+          </div>
+        </div>
+        <div class="grupo-herramienta">
+          <span class="etq-herramienta">Ver</span>
+          <div class="segmentado" role="group" aria-label="Modo">
+            <button data-cal-modo="cantidad" class="activo">Cantidad de fuego</button>
+            <button data-cal-modo="anomalia">¿Normal o raro?</button>
+          </div>
+        </div>
+      </div>
+      <!-- Conclusiones principales (se llenan solas según el lugar elegido) -->
+      <div class="cal-kpis" id="calKpis"></div>
+      <p class="explicacion" id="calExplicacion"></p>
+
+      <div class="cal-rejilla">
+        <div class="card">
+          <div class="card-cabecera">
+            <span class="card-icono" data-icono="calendario"></span>
+            <div><h3>Calendario mes a mes</h3><p>Pasa el mouse sobre una fila para ver el resumen de ese año · haz clic en un mes para verlo en el mapa</p></div>
+          </div>
+          <div class="como-leer">
+            <div><span class="cl-num">1</span><span><b>Cada fila</b> es un año</span></div>
+            <div><span class="cl-num">2</span><span><b>Cada columna</b> es un mes</span></div>
+            <div><span class="cl-num">3</span><span><b>El color</b> <span id="calLeyendaModo">es la cantidad de fuego</span></span></div>
+            <div><span class="cl-num">4</span><span><b>A la derecha</b>, el total del año: ▲ más o ▼ menos que el promedio</span></div>
+          </div>
+          <div id="graficoCalendario"></div>
+        </div>
+        <div class="cal-lateral">
+          <div class="card detalle-año">
+            <div class="card-cabecera">
+              <span class="card-icono" data-icono="lista"></span>
+              <div><h3>Resumen del año</h3><p id="calDetalleAyuda">Pasa el mouse sobre otra fila del calendario para cambiar de año</p></div>
+            </div>
+            <div id="calDetalle"></div>
+          </div>
+          <div class="card">
+            <div class="card-cabecera">
+              <span class="card-icono" data-icono="fuego"></span>
+              <div><h3>Temporada de quemas</h3><p>Los meses con más fuego en un año típico</p></div>
+            </div>
+            <p class="cal-temporada" id="calTemporada"></p>
+          </div>
+          <div class="card">
+            <div class="card-cabecera">
+              <span class="card-icono" data-icono="barras"></span>
+              <div><h3>Año típico vs. <span id="calAñoActual"></span></h3><p>Barras doradas: promedio de 25 años · Línea roja: el año seleccionado</p></div>
+            </div>
+            <div id="graficoMeses"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== ALERTA ====================== -->
+  <section class="seccion pagina" id="alerta">
+    <div class="contenido">
+      <header class="encabezado-pagina">
+        <div>
+          <div class="paso"><span class="num-paso">03</span> Alerta temprana</div>
+          <h2>¿Qué tan grave va este año en <span id="alertaLugar">Colombia</span>?</h2>
+          <p>Comparamos lo que va de este año con los 25 años anteriores y con la temporada de quemas de cada lugar.</p>
+        </div>
+        <div class="chip-lugar" data-chip></div>
+      </header>
+
+      <div class="alerta-rejilla">
+        <div class="card alerta-semaforo">
+          <div class="card-cabecera">
+            <span class="card-icono" data-icono="alerta"></span>
+            <div><h3>Este año comparado con lo normal</h3><p>Focos del 1 de enero a hoy, frente a la misma fecha de otros años</p></div>
+          </div>
+          <div class="semaforo-fila">
+            <div class="luces">
+              <span class="luz" data-luz="rojo"></span>
+              <span class="luz" data-luz="amarillo"></span>
+              <span class="luz" data-luz="verde"></span>
+            </div>
+            <div>
+              <div class="alerta-nivel" id="alertaNivel">—</div>
+              <p class="alerta-texto" id="alertaTexto"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card alerta-cuenta">
+          <div class="card-cabecera">
+            <span class="card-icono" data-icono="reloj"></span>
+            <div><h3>Temporada de quemas</h3><p>Cuánto falta y qué hacer</p></div>
+          </div>
+          <div class="cuenta-numero" id="cuentaNumero">—</div>
+          <div class="cuenta-texto" id="cuentaTexto"></div>
+          <ul class="recomendaciones" id="recomendaciones"></ul>
+        </div>
+
+        <div class="card alerta-ranking">
+          <div class="card-cabecera">
+            <span class="card-icono" data-icono="lista"></span>
+            <div><h3 id="rankingTitulo">Dónde hay más fuego este año</h3><p>Haz clic en un nombre para verlo en el mapa</p></div>
+          </div>
+          <ol class="ranking" id="ranking"></ol>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-cabecera">
+          <span class="card-icono" data-icono="tendencia"></span>
+          <div><h3>Focos acumulados en el año: este año contra lo normal</h3>
+            <p>La franja dorada es lo que pasa en 8 de cada 10 años. Si la línea roja (este año) se sale por encima, es un año peligroso.</p></div>
+        </div>
+        <div id="graficoAcumulado"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== NOSOTROS (versión básica) ====================== -->
+  <section class="seccion pagina" id="nosotros">
+    <div class="contenido">
+      <header class="encabezado-pagina">
+        <div>
+          <div class="paso"><span class="num-paso">04</span> Nosotros</div>
+          <h2>El equipo detrás de <span>FLARE</span></h2>
+          <p>Somos un equipo colombiano participando en el NASA Space Apps Challenge 2026, en el reto "Harmonization of MODIS and VIIRS Hot Spots".</p>
+        </div>
+      </header>
+
+      <!-- Cambien los nombres y roles por los de ustedes -->
+      <div class="equipo">
+        <div class="card integrante"><div class="avatar">N1</div><div class="nombre">Nombre 1</div><div class="rol">Datos y armonización</div></div>
+        <div class="card integrante"><div class="avatar">N2</div><div class="nombre">Nombre 2</div><div class="rol">Página web</div></div>
+        <div class="card integrante"><div class="avatar">N3</div><div class="nombre">Nombre 3</div><div class="rol">Diseño</div></div>
+        <div class="card integrante"><div class="avatar">N4</div><div class="nombre">Nombre 4</div><div class="rol">Presentación</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-cabecera">
+          <span class="card-icono" data-icono="libro"></span>
+          <div><h3>Nuestro método en 3 pasos</h3><p>Cómo convertimos dos satélites distintos en un solo registro comparable</p></div>
+        </div>
+        <div class="pasos-metodo">
+          <div class="paso-metodo"><span class="num-paso">1</span><b>Contamos focos, no puntos.</b> Dividimos Colombia en cuadros de 11 × 11 km. Cada día que un satélite ve fuego en un cuadro, cuenta un foco. Así MODIS y VIIRS miden lo mismo.</div>
+          <div class="paso-metodo"><span class="num-paso">2</span><b>Armonizamos.</b> Entre 2013 y 2021 los dos satélites funcionaron juntos. Medimos cuánto más ve VIIRS (≈3,5 veces) por región y por mes, y convertimos los años viejos a "equivalente VIIRS".</div>
+          <div class="paso-metodo"><span class="num-paso">3</span><b>Lo comprobamos.</b> Calibramos con 2013–2017 y predijimos 2018–2021 usando solo MODIS. El error nacional fue de apenas 3 %.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-cabecera">
+          <span class="card-icono" data-icono="info"></span>
+          <div><h3>Créditos y datos</h3><p>Fuentes y herramientas que usamos</p></div>
+        </div>
+        <ul class="creditos">
+          <li>Focos de fuego: NASA FIRMS — MODIS Collection 6.1 (Terra y Aqua) y VIIRS S-NPP 375 m.</li>
+          <li>Límites de municipios y departamentos: geoBoundaries (William &amp; Mary geoLab).</li>
+          <li>Mapas base: Esri. Librerías: Leaflet, Leaflet.heat y Apache ECharts.</li>
+          <li>Foto de la portada: (pongan aquí la fuente de la foto).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== PIE DE PÁGINA ====================== -->
+  <footer class="pie">
+    <div class="contenido pie-fila">
+      <div><b>🔥 FL<span>ARE</span></b> · Fire Long-term Analysis &amp; Rapid Early-warning</div>
+      <div>NASA Space Apps Challenge 2026 · Datos: NASA FIRMS (MODIS + VIIRS) · Actualizado al <span id="pieFecha"></span></div>
+    </div>
+  </footer>
+
+  <script>
+  // =====================================================================
+  // CONFIGURACIÓN
+  // =====================================================================
+  const CONFIG = {
+    // Respaldo por internet si falta datos/departamentos.js
+    urlDepartamentos: "https://gist.githubusercontent.com/john-guerra/43c7656821069d00dcbc/raw/Colombia.geo.json",
+    centro: [4.3, -73.5],
+    zoom: 5.5,
+    // Gradiente del mapa de calor: amarillo suave → naranja → rojo → rojo casi negro
+    gradiente: { 0.2: "#ffeda0", 0.5: "#fd8d3c", 0.8: "#e31a1c", 1.0: "#2b0000" },
+    // Colores de departamentos y municipios (de menos a más focos)
+    coloresClases: ["#fff3b0", "#fdbb63", "#f6782a", "#d7301f", "#8c0d0d"],
+    colorSinFuego: "#4a4a4c",
+    muestrasPorLado: 4,   // cada celda de 11 km se revisa en 4×4 puntos para repartirla entre municipios
+  };
+
+  const A0 = DATOS_MAPA.meta.añoInicio;
+  const AÑO_FIN = DATOS_MAPA.meta.añoFin;
+  const NA = AÑO_FIN - A0 + 1;
+  const PASO = DATOS_MAPA.meta.celdaGrados;
+  const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const fmt = v => Math.round(v).toLocaleString("es-CO");
+  const TIPOS = ["mun", "depto"];
+  const NOMBRE_TIPO = { mun: "municipio", depto: "departamento" };
+
+  // =====================================================================
+  // 1. DATOS: celdas de 11 km con sus focos por año y mes
+  // =====================================================================
+  const celdas = DATOS_MAPA.celdas.map(([lat, lon, serie]) => ({ lat, lon, serie, partes: { mun: [], depto: [] } }));
+  const claveCelda = (lat, lon) => Math.floor(lon / PASO + 1e-9) + "," + Math.floor(lat / PASO + 1e-9);
+  const indiceCeldas = new Map(celdas.map(c => [claveCelda(c.lat, c.lon), c]));
+
+  // =====================================================================
+  // 2. LÍMITES: departamentos y municipios
+  // =====================================================================
+  const UNIDADES = {
+    depto: { lista: [], indice: new Map(), anual: [], cargado: false, capa: null },
+    mun:   { lista: [], indice: new Map(), anual: [], cargado: false, capa: null },
+  };
+
+  // Nombres bonitos (algunos archivos vienen en MAYÚSCULAS y sin tildes)
+  const NOMBRES = {
+    "ATLANTICO": "Atlántico", "BOLIVAR": "Bolívar", "BOYACA": "Boyacá", "CAQUETA": "Caquetá",
+    "CORDOBA": "Córdoba", "CHOCO": "Chocó", "GUAINIA": "Guainía", "QUINDIO": "Quindío",
+    "VAUPES": "Vaupés", "SANTAFE DE BOGOTA D.C": "Bogotá D.C.", "BOGOTA D.C.": "Bogotá D.C.",
+    "BOGOTA, D.C.": "Bogotá D.C.", "SAN ANDRES": "San Andrés y Providencia",
+    "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA": "San Andrés y Providencia",
+    "ARCHIPIÉLAGO DE SAN ANDRÉS, PROVIDENCIA Y SANTA CATALINA": "San Andrés y Providencia",
+  };
+  function nombreBonito(props) {
+    const crudo = String(props.nombre || props.NOMBRE_DPT || props.DPTO_CNMBR || props.NOMBRE || props.name ||
+                         props.NAME_1 || props.shapeName || "Sin nombre").trim();
+    const clave = crudo.toUpperCase();
+    if (NOMBRES[clave]) return NOMBRES[clave];
+    if (crudo !== clave) return crudo;                       // ya viene bien escrito
+    return crudo.toLowerCase().replace(/(^|\s)\S/g, l => l.toUpperCase())
+      .replace(/\b(De|Del|La|Las|Los|Y|El)\b/g, p => p.toLowerCase());
+  }
+
+  // ¿Un punto está dentro de un polígono? (prueba del "rayo")
+  function puntoEnAnillo(lon, lat, anillo) {
+    let dentro = false;
+    for (let i = 0, j = anillo.length - 1; i < anillo.length; j = i++) {
+      const [xi, yi] = anillo[i], [xj, yj] = anillo[j];
+      if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) dentro = !dentro;
+    }
+    return dentro;
+  }
+  function puntoEnGeometria(lon, lat, geom) {
+    const poligonos = geom.type === "Polygon" ? [geom.coordinates] : geom.type === "MultiPolygon" ? geom.coordinates : [];
+    return poligonos.some(p => puntoEnAnillo(lon, lat, p[0]) && !p.slice(1).some(h => puntoEnAnillo(lon, lat, h)));
+  }
+
+  // Prepara la lista de departamentos o municipios + un índice para buscarlos rápido
+  function prepararUnidades(tipo, geojson) {
+    const U = UNIDADES[tipo];
+    geojson.features.forEach((f, id) => {
+      let s = 90, n = -90, o = 180, e = -180;
+      const recorrer = c => { if (typeof c[0] === "number") { o = Math.min(o, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1]); } else c.forEach(recorrer); };
+      recorrer(f.geometry.coordinates);
+      f.properties = f.properties || {};
+      f.properties.__id = id;
+      U.lista.push({ id, nombre: nombreBonito(f.properties), geom: f.geometry, caja: [s, o, n, e], depto: null });
+      // Índice: en qué celdas de 0.1° cae la caja de cada unidad
+      for (let x = Math.floor(o / PASO); x <= Math.floor(e / PASO); x++)
+        for (let y = Math.floor(s / PASO); y <= Math.floor(n / PASO); y++) {
+          const k = x + "," + y;
+          if (!U.indice.has(k)) U.indice.set(k, []);
+          U.indice.get(k).push(id);
+        }
+    });
+    U.anual = U.lista.map(() => new Float64Array(NA));
+  }
+
+  function unidadEn(tipo, lat, lon) {
+    const U = UNIDADES[tipo];
+    const candidatos = U.indice.get(Math.floor(lon / PASO) + "," + Math.floor(lat / PASO)) || [];
+    for (const id of candidatos) {
+      const [s, o, n, e] = U.lista[id].caja;
+      if (lat >= s && lat <= n && lon >= o && lon <= e && puntoEnGeometria(lon, lat, U.lista[id].geom)) return id;
+    }
+    return null;
+  }
+
+  // Reparte cada celda de 11 km entre las unidades que toca (según cuántos puntos de muestra caen en cada una)
+  function asignarCeldas(tipo) {
+    const U = UNIDADES[tipo], m = CONFIG.muestrasPorLado;
+    for (const c of celdas) {
+      const conteo = new Map();
+      for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) {
+        const lat = c.lat - PASO / 2 + (i + 0.5) * PASO / m;
+        const lon = c.lon - PASO / 2 + (j + 0.5) * PASO / m;
+        const id = unidadEn(tipo, lat, lon);
+        if (id !== null) conteo.set(id, (conteo.get(id) || 0) + 1);
+      }
+      if (!conteo.size) {
+        // Celda en la costa o la frontera: se asigna a la unidad más cercana de su zona
+        let mejor = null, dMin = Infinity;
+        for (const id of U.indice.get(Math.floor(c.lon / PASO) + "," + Math.floor(c.lat / PASO)) || []) {
+          const [s, o, n, e] = U.lista[id].caja;
+          const d = Math.hypot((s + n) / 2 - c.lat, (o + e) / 2 - c.lon);
+          if (d < dMin) { dMin = d; mejor = id; }
+        }
+        if (mejor !== null) conteo.set(mejor, 1);
+      }
+      const total = [...conteo.values()].reduce((a, b) => a + b, 0);
+      c.partes[tipo] = [...conteo].map(([id, k]) => [id, k / total]);
+      for (const [id, frac] of c.partes[tipo]) for (const [a, , f] of c.serie) U.anual[id][a] += f * frac;
+    }
+  }
+
+  // A qué departamento pertenece cada municipio (usando un punto dentro del municipio)
+  function departamentoDeMunicipios() {
+    if (!UNIDADES.depto.cargado || !UNIDADES.mun.cargado) return;
+    for (const m of UNIDADES.mun.lista) {
+      const anillo = m.geom.type === "Polygon" ? m.geom.coordinates[0] : m.geom.coordinates[0][0];
+      let lat = 0, lon = 0;
+      anillo.forEach(([x, y]) => { lon += x; lat += y; });
+      lat /= anillo.length; lon /= anillo.length;
+      let id = unidadEn("depto", lat, lon);
+      if (id === null) id = unidadEn("depto", anillo[0][1], anillo[0][0]);
+      m.depto = id !== null ? UNIDADES.depto.lista[id].nombre : null;
+    }
+  }
+
+  // =====================================================================
+  // 3. FILTRAR LOS DATOS POR PERIODO
+  // =====================================================================
+  /**
+   * Devuelve los datos de un periodo, listos para actualizarMapa().
+   * @param {number|null} año  ej. 2016, o null para todos
+   * @param {number|null} mes  1-12, o null para todo el año
+   */
+  function filtrarDatos(año = null, mes = null) {
+    const puntos = [], porDepto = {}, porMunicipio = {};
+    let total = 0;
+    for (const c of celdas) {
+      let suma = 0;
+      for (const [a, m, focos] of c.serie)
+        if ((año === null || a === año - A0) && (mes === null || m === mes)) suma += focos;
+      if (suma <= 0) continue;
+      puntos.push([c.lat, c.lon, suma]);
+      total += suma;
+      for (const [id, frac] of c.partes.depto) porDepto[id] = (porDepto[id] || 0) + suma * frac;
+      for (const [id, frac] of c.partes.mun) porMunicipio[id] = (porMunicipio[id] || 0) + suma * frac;
+    }
+    const etiqueta = (mes ? MESES[mes - 1].toLowerCase() + " de " : "") + (año ? año : `${A0}–${AÑO_FIN}`);
+    return { puntos, porDepto, porMunicipio, total, etiqueta };
+  }
+
+  // =====================================================================
+  // 4. MAPA BASE (Esri, gratis y sin API key)
+  // =====================================================================
+  const mapa = L.map("mapa-leaflet", { zoomSnap: 0.25, minZoom: 4 }).setView(CONFIG.centro, CONFIG.zoom);
+  // Capas en orden: calor (abajo) → municipios → departamentos (arriba)
+  mapa.createPane("municipios").style.zIndex = 405;
+  mapa.createPane("deptos").style.zIndex = 410;
+
+  const basesOscuras = {
+    "🌑 Oscuro": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Mapa &copy; Esri", maxZoom: 16
+    }),
+    "🛰️ Satélite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Imágenes &copy; Esri, Maxar, Earthstar Geographics", maxZoom: 16
+    }),
+  };
+  basesOscuras["🌑 Oscuro"].addTo(mapa);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 16, pane: "shadowPane", opacity: 0.9
+  }).addTo(mapa);
+
+  // =====================================================================
+  // 5. CAPA — MAPA DE CALOR
+  // =====================================================================
+  // maxZoom bajo (6) y minOpacity baja (0.05) para que se note la diferencia entre zonas
+  // IMPORTANTE: no se agrega al mapa todavía. La página del mapa empieza escondida (tamaño 0)
+  // y Leaflet.heat falla si dibuja en un lienzo de tamaño 0. Se agrega cuando el mapa
+  // se muestra por primera vez (ver "NAVEGACIÓN ENTRE PÁGINAS" → mostrarPagina).
+  const capaCalor = L.heatLayer([], { radius: 10, blur: 10, maxZoom: 6, max: 1, minOpacity: 0.05, gradient: CONFIG.gradiente });
+
+  function ajustarRadioCalor() {
+    const z = mapa.getZoom();
+    const radio = Math.max(8, Math.min(15, 8 + (z - 5) * 1.75));
+    const blur = Math.max(10, Math.min(12, radio * 0.9));
+    const pxPorCelda = 256 * Math.pow(2, z) / 360 * PASO;
+    const max = Math.max(1, 0.7 * Math.pow((radio + blur) / 2 / pxPorCelda, 2));
+    capaCalor.setOptions({ radius: radio, blur, max });
+  }
+  mapa.on("zoomend", ajustarRadioCalor);
+
+  // =====================================================================
+  // 6. CAPAS — DEPARTAMENTOS Y MUNICIPIOS (coropletas)
+  // =====================================================================
+  let datosActuales = null;      // lo último que recibió actualizarMapa()
+  let seleccion = null;          // { tipo: "mun" | "depto", id }
+  const cortes = { mun: [], depto: [] };
+
+  const valorDe = (tipo, id) => datosActuales ? ((tipo === "mun" ? datosActuales.porMunicipio : datosActuales.porDepto)[id] || 0) : 0;
+
+  function colorClase(tipo, valor) {
+    if (valor < 0.5) return CONFIG.colorSinFuego;
+    let i = 0;
+    while (i < cortes[tipo].length && valor > cortes[tipo][i]) i++;
+    return CONFIG.coloresClases[i];
+  }
+
+  const municipiosVisibles = () => UNIDADES.mun.capa && mapa.hasLayer(UNIDADES.mun.capa);
+
+  function estiloUnidad(tipo) {
+    return feature => {
+      const id = feature.properties.__id;
+      const valor = valorDe(tipo, id);
+      const elegido = seleccion && seleccion.tipo === tipo && seleccion.id === id;
+      if (tipo === "depto" && municipiosVisibles()) {
+        // Con municipios encendidos, los departamentos son solo el contorno blanco
+        return { fillOpacity: 0, color: "#ffffff", weight: elegido ? 3.5 : 2, opacity: 0.95 };
+      }
+      return {
+        fillColor: colorClase(tipo, valor), fillOpacity: valor < 0.5 ? 0.08 : (elegido ? 0.5 : (tipo === "mun" ? 0.35 : 0.2)),
+        color: "#ffffff", weight: elegido ? 3 : (tipo === "mun" ? 0.4 : 1.5), opacity: tipo === "mun" ? 0.5 : 0.8,
+      };
+    };
+  }
+
+  function eventosUnidad(tipo) {
+    return (feature, capa) => {
+      const id = feature.properties.__id;
+      capa.on({
+        mouseover: e => {
+          if (tipo === "depto" && municipiosVisibles()) return;
+          e.target.setStyle({ weight: 3, color: "#ffffff", opacity: 1 });
+          if (e.target.bringToFront) e.target.bringToFront();
+          tarjeta.mostrar(tipo, id);
+        },
+        mouseout: e => {
+          if (tipo === "depto" && municipiosVisibles()) return;
+          UNIDADES[tipo].capa.resetStyle(e.target);
+          tarjeta.mostrar(null);
+        },
+        click: e => {
+          if (tipo === "depto" && municipiosVisibles()) return;
+          seleccion = { tipo, id };
+          refrescarEstilos();
+          mapa.flyToBounds(e.target.getBounds(), { padding: [30, 30], duration: 0.6, maxZoom: 9 });
+          actualizarPanel();
+        },
+      });
+    };
+  }
+
+  function crearCapa(tipo) {
+    return L.geoJSON(null, {
+      pane: tipo === "mun" ? "municipios" : "deptos",
+      renderer: tipo === "mun" ? L.canvas({ pane: "municipios" }) : undefined,   // canvas = más rápido con 1.100 polígonos
+      style: estiloUnidad(tipo),
+      onEachFeature: eventosUnidad(tipo),
+    });
+  }
+  UNIDADES.depto.capa = crearCapa("depto");
+  UNIDADES.mun.capa = crearCapa("mun");
+
+  function refrescarEstilos() {
+    for (const t of TIPOS) if (UNIDADES[t].cargado) UNIDADES[t].capa.setStyle(estiloUnidad(t));
+    // Con municipios encendidos, el mouse "atraviesa" los departamentos
+    mapa.getContainer().classList.toggle("municipios-on", !!municipiosVisibles());
+  }
+
+  // =====================================================================
+  // 7. TARJETA FLOTANTE (hover) — esquina superior izquierda
+  // =====================================================================
+  const tarjeta = L.control({ position: "topleft" });
+  tarjeta.onAdd = function () {
+    this._div = L.DomUtil.create("div", "info-card");
+    this.mostrar(null);
+    return this._div;
+  };
+  tarjeta.mostrar = function (tipo, id) {
+    if (!this._div) return;
+    if (!tipo || !datosActuales) {
+      this._div.innerHTML = `<div class="suave">Pasa el cursor sobre un ${municipiosVisibles() ? "municipio" : "departamento"}</div>`;
+      return;
+    }
+    const u = UNIDADES[tipo].lista[id];
+    const valor = valorDe(tipo, id);
+    const parte = datosActuales.total ? valor / datosActuales.total * 100 : 0;
+    const puesto = puestoDe(tipo, id);
+    this._div.innerHTML = `
+      <div class="titulo">${u.nombre}</div>
+      ${tipo === "mun" && u.depto ? `<div class="suave">${u.depto}</div>` : ""}
+      <div class="valor">${fmt(valor)}</div>
+      <div>focos de fuego · ${datosActuales.etiqueta}</div>
+      <div class="suave">${valor < 0.5 ? "Sin fuego detectado" : `Puesto ${puesto} de ${UNIDADES[tipo].lista.length} · ${parte >= 1 ? Math.round(parte) + " %" : "menos del 1 %"} del país`}</div>`;
+  };
+  tarjeta.addTo(mapa);
+
+  function puestoDe(tipo, id) {
+    const v = valorDe(tipo, id);
+    return UNIDADES[tipo].lista.filter(u => valorDe(tipo, u.id) > v).length + 1;
+  }
+
+  // =====================================================================
+  // 8. LEYENDA — esquina inferior derecha
+  // =====================================================================
+  const leyenda = L.control({ position: "bottomright" });
+  leyenda.onAdd = function () { this._div = L.DomUtil.create("div", "leyenda"); return this._div; };
+  leyenda.dibujar = function () {
+    if (!this._div) return;
+    let html = "";
+    if (mapa.hasLayer(capaCalor)) {
+      html += `<div class="bloque"><b>🔥 Intensidad del fuego</b>
+        <div class="barra-calor" style="background: linear-gradient(90deg, ${Object.values(CONFIG.gradiente).join(", ")})"></div>
+        <div class="extremos"><span>Poco</span><span>Mucho</span></div></div>`;
+    }
+    const tipo = municipiosVisibles() && UNIDADES.mun.cargado ? "mun"
+               : (UNIDADES.depto.capa && mapa.hasLayer(UNIDADES.depto.capa) && UNIDADES.depto.cargado ? "depto" : null);
+    if (tipo) {
+      const limites = [0, ...cortes[tipo]];
+      html += `<div class="bloque"><b>${tipo === "mun" ? "🏘️ Focos por municipio" : "🗺️ Focos por departamento"}</b>` +
+        `<div class="clase"><i style="background:${CONFIG.colorSinFuego}"></i>Sin fuego</div>` +
+        CONFIG.coloresClases.map((c, i) => {
+          const desde = limites[i], hasta = limites[i + 1];
+          const texto = hasta === undefined ? `Más de ${fmt(desde)}` : (i === 0 ? `Hasta ${fmt(hasta)}` : `${fmt(desde)} – ${fmt(hasta)}`);
+          return `<div class="clase"><i style="background:${c}"></i>${texto}</div>`;
+        }).join("") + `</div>`;
+    }
+    this._div.innerHTML = html || "<span>Activa una capa arriba a la derecha</span>";
+  };
+  leyenda.addTo(mapa);
+
+  // =====================================================================
+  // 9. CONTROL DE CAPAS — esquina superior derecha
+  // =====================================================================
+  const controlCapas = L.control.layers(basesOscuras, { "🔥 Mapa de calor": capaCalor }, { position: "topright", collapsed: false }).addTo(mapa);
+  mapa.on("overlayadd overlayremove", () => { refrescarEstilos(); leyenda.dibujar(); tarjeta.mostrar(null); });
+
+  // =====================================================================
+  // 10. FUNCIÓN PRINCIPAL: actualizarMapa(datosFiltrados)
+  // ---------------------------------------------------------------------
+  // Recibe (por ejemplo, desde el Calendario):
+  //   {
+  //     puntos:       [[lat, lon, focos], ...],   // para el mapa de calor
+  //     porDepto:     { idDepto: focos, ... },    // opcional: si falta, se calcula con los puntos
+  //     porMunicipio: { idMunicipio: focos, ... },// opcional: si falta, se calcula con los puntos
+  //     etiqueta:     "febrero de 2016"           // texto del periodo
+  //   }
+  // Lo más fácil es usar filtrarDatos(año, mes), que ya devuelve todo armado.
+  // =====================================================================
+  function actualizarMapa(datosFiltrados) {
+    const datos = { puntos: [], porDepto: null, porMunicipio: null, total: 0, etiqueta: "", ...datosFiltrados };
+
+    // Si solo llegaron coordenadas, repartimos por departamento y municipio aquí
+    if (!datos.porDepto || !datos.porMunicipio) {
+      const porDepto = {}, porMunicipio = {};
+      for (const [lat, lon, focos] of datos.puntos) {
+        const c = indiceCeldas.get(claveCelda(lat, lon));
+        if (c) {
+          for (const [id, f] of c.partes.depto) porDepto[id] = (porDepto[id] || 0) + focos * f;
+          for (const [id, f] of c.partes.mun) porMunicipio[id] = (porMunicipio[id] || 0) + focos * f;
+        } else {
+          const d = UNIDADES.depto.cargado ? unidadEn("depto", lat, lon) : null;
+          const m = UNIDADES.mun.cargado ? unidadEn("mun", lat, lon) : null;
+          if (d !== null) porDepto[d] = (porDepto[d] || 0) + focos;
+          if (m !== null) porMunicipio[m] = (porMunicipio[m] || 0) + focos;
+        }
+      }
+      datos.porDepto = datos.porDepto || porDepto;
+      datos.porMunicipio = datos.porMunicipio || porMunicipio;
+    }
+    if (!datos.total) datos.total = datos.puntos.reduce((s, p) => s + p[2], 0);
+    datosActuales = datos;
+
+    // --- Mapa de calor: cada punto vale de 0 a 1 (1 = el 2 % de celdas con más fuego)
+    const orden = datos.puntos.map(p => p[2]).sort((a, b) => a - b);
+    const p98 = orden.length ? Math.max(1, orden[Math.floor(0.98 * (orden.length - 1))]) : 1;
+    if (!window.VIAJE_ACTIVO) {     // durante el "Viaje en el tiempo", el viaje anima el mapa de calor
+      capaCalor.setLatLngs(datos.puntos.map(([lat, lon, v]) => [lat, lon, Math.min(1, v / p98)]));
+    }
+    ajustarRadioCalor();
+
+    // --- Coropletas: 5 clases según los valores del periodo (cuantiles)
+    for (const tipo of TIPOS) {
+      const valores = Object.values(tipo === "mun" ? datos.porMunicipio : datos.porDepto).filter(v => v >= 0.5).sort((a, b) => a - b);
+      cortes[tipo] = valores.length >= 5
+        ? [0.2, 0.4, 0.6, 0.8].map(q => Math.max(1, Math.round(valores[Math.floor(q * (valores.length - 1))])))
+        : [1, 10, 100, 1000];
+    }
+    refrescarEstilos();
+    leyenda.dibujar();
+    actualizarPanel();
+  }
+
+  // =====================================================================
+  // 11. PANEL DE LA DERECHA
+  // =====================================================================
+  function actualizarPanel() {
+    if (!datosActuales) return;
+    const tipo = seleccion ? seleccion.tipo : null;
+    const u = seleccion ? UNIDADES[tipo].lista[seleccion.id] : null;
+    const valor = u ? valorDe(tipo, u.id) : datosActuales.total;
+    const parte = datosActuales.total ? valor / datosActuales.total * 100 : 0;
+
+    document.getElementById("nombreLugar").textContent = u ? u.nombre : "Colombia";
+    document.getElementById("botonVolver").style.display = u ? "inline-block" : "none";
+    let sub;
+    if (!u) sub = "Todo el país · haz clic en un municipio o departamento";
+    else {
+      const puesto = puestoDe(tipo, u.id);
+      sub = (tipo === "mun" ? `Municipio${u.depto ? " de " + u.depto : ""}` : "Departamento") +
+            (valor >= 0.5 ? ` · puesto ${puesto} de ${UNIDADES[tipo].lista.length} en focos de fuego` : "");
+    }
+    document.getElementById("subtituloLugar").textContent = sub;
+
+    // Serie anual (todo el registro) para peor año y tendencia
+    let anual;
+    if (u) anual = UNIDADES[tipo].anual[u.id];
+    else {
+      anual = new Float64Array(NA);
+      for (const c of celdas) for (const [a, , f] of c.serie) anual[a] += f;
+    }
+    const completos = Array.from(anual.slice(0, NA - 1));
+    const prom = completos.reduce((s, v) => s + v, 0) / (completos.length || 1);
+    const peor = completos.indexOf(Math.max(...completos));
+    let num = 0, den = 0;
+    const mx = (completos.length - 1) / 2;
+    completos.forEach((y, x) => { num += (x - mx) * (y - prom); den += (x - mx) ** 2; });
+    const tendencia = prom >= 1 && den ? (num / den) * 10 / prom * 100 : 0;
+
+    const lugar = u ? `En ${u.nombre}` : "En Colombia";
+    const direccion = tendencia < -5 ? `ha <b>bajado</b> un ${Math.abs(Math.round(tendencia))} % por década`
+                    : tendencia > 5 ? `ha <b>subido</b> un ${Math.round(tendencia)} % por década`
+                    : "se ha mantenido <b>estable</b>";
+    document.getElementById("resumen").innerHTML = valor < 0.5
+      ? `${lugar} no se detectó fuego en ${datosActuales.etiqueta}. 🌿` + (prom >= 1 ? ` Su peor año fue <b>${A0 + peor}</b>.` : "")
+      : `${lugar} los satélites detectaron <b>${fmt(valor)} focos de fuego</b> en ${datosActuales.etiqueta}` +
+        (u ? `, el <b>${parte >= 1 ? Math.round(parte) : "<1"} %</b> del total del país` : "") +
+        `. Su peor año fue <b>${A0 + peor}</b>, y desde ${A0} el fuego ${direccion}.`;
+
+    contar("numTotal", valor);
+    document.getElementById("textoTotal").textContent = `focos de fuego · ${datosActuales.etiqueta}`;
+    document.getElementById("numParte").textContent = u ? (parte >= 1 ? `${Math.round(parte)}%` : (valor >= 0.5 ? "< 1%" : "0%")) : "100%";
+    document.getElementById("numPeorAño").textContent = completos[peor] >= 0.5 ? A0 + peor : "—";
+    document.getElementById("textoPeorAño").textContent = `el peor año (${fmt(completos[peor] || 0)} focos)`;
+    const elTend = document.getElementById("numTendencia");
+    elTend.textContent = tendencia < -5 ? `↓ ${Math.abs(Math.round(tendencia))}%` : tendencia > 5 ? `↑ ${Math.round(tendencia)}%` : "≈ igual";
+    elTend.className = "numero " + (tendencia < -5 ? "bajando" : tendencia > 5 ? "subiendo" : "");
+    document.getElementById("textoTendencia").textContent =
+      tendencia < -5 ? "menos fuego cada década" : tendencia > 5 ? "más fuego cada década" : "el fuego no ha cambiado mucho";
+
+    // El calendario siempre muestra el mismo lugar que el panel
+    if (typeof actualizarCalendario === "function") actualizarCalendario();
+    // Y la alerta también
+    if (typeof actualizarAlerta === "function") actualizarAlerta();
+    // Y la etiqueta "📍 Viendo: ..." de las otras páginas
+    if (typeof actualizarChips === "function") actualizarChips();
+    // Y la línea del "Viaje en el tiempo"
+    if (typeof actualizarViaje === "function") actualizarViaje();
+  }
+
+  // Animación: el número "cuenta" hasta el valor final (si llega otro valor, el anterior se cancela)
+  function contar(id, final) {
+    const el = document.getElementById(id);
+    const turno = el.turno = (el.turno || 0) + 1;
+    const inicio = performance.now();
+    function paso(t) {
+      if (el.turno !== turno) return;
+      const p = Math.max(0, Math.min(1, (t - inicio) / 700));
+      el.textContent = fmt(final * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(paso);
+    }
+    requestAnimationFrame(paso);
+  }
+
+  document.getElementById("botonVolver").onclick = () => {
+    seleccion = null;
+    refrescarEstilos();
+    mapa.flyTo(CONFIG.centro, CONFIG.zoom, { duration: 0.6 });
+    actualizarPanel();
+  };
+
+  // =====================================================================
+  // 12. FILTROS DE PERIODO (esto mismo lo podrá hacer el Calendario)
+  // =====================================================================
+  const selAño = document.getElementById("filtroAño");
+  const selMes = document.getElementById("filtroMes");
+  selAño.innerHTML = `<option value="">Todos los años (${A0}–${AÑO_FIN})</option>` +
+    Array.from({ length: NA }, (_, i) => AÑO_FIN - i)
+      .map(a => `<option value="${a}">${a}${a === AÑO_FIN ? " (hasta hoy)" : ""}</option>`).join("");
+  selMes.innerHTML = `<option value="">Todo el año</option>` + MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
+  function aplicarFiltros() {
+    const año = selAño.value ? Number(selAño.value) : null;
+    const mes = selMes.value ? Number(selMes.value) : null;
+    actualizarMapa(filtrarDatos(año, mes));
+  }
+  selAño.onchange = aplicarFiltros;
+  selMes.onchange = aplicarFiltros;
+
+  // =====================================================================
+  // 13. ARRANQUE
+  // =====================================================================
+  const avisos = [];
+  function mostrarAvisos() { document.getElementById("estadoCarga").innerHTML = avisos.join("<br>"); }
+
+  function cargarLimites(tipo, geojson) {
+    prepararUnidades(tipo, geojson);
+    asignarCeldas(tipo);
+    UNIDADES[tipo].capa.addData(geojson);
+    UNIDADES[tipo].cargado = true;
+    controlCapas.addOverlay(UNIDADES[tipo].capa, tipo === "mun" ? "🏘️ Municipios" : "🗺️ Departamentos");
+    UNIDADES[tipo].capa.addTo(mapa);
+    departamentoDeMunicipios();
+  }
+
+  aplicarFiltros();   // el mapa de calor aparece de una vez
+
+  // Pequeña pausa para que la página se dibuje antes de los cálculos pesados
+  setTimeout(() => {
+    document.getElementById("estadoCarga").textContent = "Preparando departamentos y municipios…";
+    setTimeout(() => {
+      const tareas = [];
+      if (typeof DEPARTAMENTOS !== "undefined") cargarLimites("depto", DEPARTAMENTOS);
+      else tareas.push(fetch(CONFIG.urlDepartamentos)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(gj => cargarLimites("depto", gj))
+        .catch(() => avisos.push("⚠️ Faltan los departamentos. En la carpeta <b>procesamiento</b> corre: <code>python descargar_departamentos.py ../datos/departamentos.js</code>")));
+
+      if (typeof MUNICIPIOS !== "undefined") cargarLimites("mun", MUNICIPIOS);
+      else avisos.push("⚠️ Faltan los municipios. En la carpeta <b>procesamiento</b> corre: <code>python descargar_municipios.py ../datos/municipios.js</code>");
+
+      Promise.all(tareas).then(() => { mostrarAvisos(); aplicarFiltros(); });
+    }, 30);
+  }, 30);
+  </script>
+  <script>
+  // =====================================================================
+  // CALENDARIO DE QUEMA
+  // Usa las mismas celdas del mapa (DATOS_MAPA) y el lugar elegido en el mapa
+  // (variable "seleccion": un municipio, un departamento o toda Colombia).
+  // =====================================================================
+  const CAL = {
+    armonizado: true,
+    modo: "cantidad",          // "cantidad" o "anomalia"
+    ultimoMes: Number(DATOS_MAPA.meta.ultimaFecha.slice(5, 7)),   // último mes con datos del año actual
+    marcado: null,             // [año, mes] que se está mostrando en el mapa
+  };
+  const MESES_CORTOS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  const AÑOS_TXT = Array.from({ length: NA }, (_, i) => String(A0 + i));
+  const pos = (a, m) => a * 12 + (m - 1);              // posición de (año, mes) en los arreglos
+  const esFuturo = (a, m) => a === NA - 1 && m > CAL.ultimoMes;
+
+  const graficoCal = echarts.init(document.getElementById("graficoCalendario"));
+  const graficoMeses = echarts.init(document.getElementById("graficoMeses"));
+  window.addEventListener("resize", () => { graficoCal.resize(); graficoMeses.resize(); });
+
+  // ---------- 1. Serie mensual del lugar elegido ----------
+  function serieMensual() {
+    const arm = new Float64Array(NA * 12), cru = new Float64Array(NA * 12);
+    for (const c of celdas) {
+      let frac = 1;
+      if (seleccion) {
+        const parte = c.partes[seleccion.tipo].find(([id]) => id === seleccion.id);
+        if (!parte) continue;
+        frac = parte[1];
+      }
+      for (const [a, m, focos, crudo] of c.serie) {
+        arm[pos(a, m)] += focos * frac;
+        cru[pos(a, m)] += (crudo ?? focos) * frac;
+      }
+    }
+    return { arm, cru };
+  }
+
+  // "Lo normal" de cada mes: promedio de los años completos
+  function promedioPorMes(serie) {
+    return MESES_CORTOS.map((_, i) => {
+      let t = 0;
+      for (let a = 0; a < NA - 1; a++) t += serie[pos(a, i + 1)];
+      return t / (NA - 1);
+    });
+  }
+
+  function percentil(arr, p) {
+    const o = [...arr].sort((x, y) => x - y);
+    if (!o.length) return 0;
+    const k = (o.length - 1) * p, f = Math.floor(k);
+    return o[f] + (o[Math.min(f + 1, o.length - 1)] - o[f]) * (k - f);
+  }
+
+  // Temporada: meses alrededor del pico con al menos 35 % de la actividad del mes pico
+  function temporada(normal) {
+    const pico = normal.indexOf(Math.max(...normal));
+    const umbral = 0.35 * normal[pico];
+    let ini = pico, fin = pico;
+    for (let k = 0; k < 11 && normal[(ini + 11) % 12] >= umbral; k++) ini = (ini + 11) % 12;
+    for (let k = 0; k < 11 && normal[(fin + 1) % 12] >= umbral; k++) fin = (fin + 1) % 12;
+    let dentro = 0;
+    const total = normal.reduce((a, b) => a + b, 0);
+    for (let m = ini; ; m = (m + 1) % 12) { dentro += normal[m]; if (m === fin) break; }
+    return { pico, ini, fin, porcentaje: total ? dentro / total : 0 };
+  }
+  const estaEnTemporada = (m, t) => t.ini <= t.fin ? (m >= t.ini && m <= t.fin) : (m >= t.ini || m <= t.fin);
+
+  // ---------- 2. Dibujar el calendario ----------
+  function dibujarCalendario({ arm, cru }) {
+    const serie = CAL.armonizado ? arm : cru;
+    const anomalia = CAL.modo === "anomalia";
+    const normal = promedioPorMes(serie);
+    const e = 0.1 * normal.reduce((a, b) => a + b, 0) / 12 + 0.5;    // evita dividir entre casi cero
+    const puntos = [];
+    let maximo = 1;
+
+    for (let a = 0; a < NA; a++) for (let m = 1; m <= 12; m++) {
+      if (esFuturo(a, m)) continue;
+      const v = serie[pos(a, m)];
+      const razon = (v + e) / (normal[m - 1] + e);
+      const valor = anomalia ? Math.max(-2, Math.min(2, Math.log2(razon))) : Math.round(v);
+      puntos.push({ value: [m - 1, a, +valor.toFixed(2), Math.round(v), razon],
+                    itemStyle: CAL.marcado && CAL.marcado[0] === a && CAL.marcado[1] === m ? { borderColor: "#ffffff", borderWidth: 3 } : undefined });
+    }
+    // Niveles de fuego para el modo "Cantidad": se calculan con el historial ARMONIZADO del lugar,
+    // así cada color significa lo mismo con o sin armonizar (comparación justa del antes/después).
+    // Muy poco = el 20 % de meses con menos fuego … Extremo = el 5 % de meses con más fuego.
+    let niveles = [];
+    {
+      const hist = Array.from(arm).filter(v => v > 0);
+      const q = [0.2, 0.4, 0.6, 0.8, 0.95].map(p => Math.max(1, Math.round(percentil(hist, p))));
+      for (let i = 1; i < q.length; i++) if (q[i] <= q[i - 1]) q[i] = q[i - 1] + 1;   // cortes siempre crecientes
+      const colores = ["#2c2c30", "#5b4a33", "#a8742e", "#e8892c", "#f25a2a", "#ff2e2e"];
+      const nombres = ["Muy poco", "Poco", "Medio", "Alto", "Muy alto", "Extremo"];
+      niveles = colores.map((color, i) => ({
+        min: i === 0 ? -Infinity : q[i - 1], max: i === q.length ? Infinity : q[i],
+        color, label: `${nombres[i]} (${i === 0 ? "< " + fmt(q[0]) : i === q.length ? "> " + fmt(q[i - 1]) : fmt(q[i - 1]) + "–" + fmt(q[i])})`,
+      }));
+      niveles[0].min = undefined; niveles[niveles.length - 1].max = undefined;
+      CAL.niveles = niveles.map(n => ({ ...n, nombre: n.label.split(" (")[0] }));
+    }
+    // Totales por año (la escala de las barras también se fija con los armonizados)
+    const totalAño = (s, a) => { let t = 0; for (let m = 1; m <= 12; m++) t += s[pos(a, m)]; return t; };
+    const anuales = AÑOS_TXT.map((_, a) => totalAño(serie, a));
+    // Comparación de cada año con el promedio (el año actual se compara solo con los mismos meses)
+    const hastaMes = (s, a, mMax) => { let t = 0; for (let m = 1; m <= mMax; m++) t += s[pos(a, m)]; return t; };
+    const promAnual = anuales.slice(0, NA - 1).reduce((x, y) => x + y, 0) / (NA - 1);
+    const promHastaHoy = Array.from({ length: NA - 1 }, (_, a) => hastaMes(serie, a, CAL.ultimoMes)).reduce((x, y) => x + y, 0) / (NA - 1);
+    const difAño = a => { const ref = a === NA - 1 ? promHastaHoy : promAnual; return ref ? (anuales[a] / ref - 1) * 100 : 0; };
+    const maxAnual = Math.max(1, ...AÑOS_TXT.map((_, a) => totalAño(arm, a))) * 1.25;
+
+    graficoCal.setOption({
+      tooltip: {
+        backgroundColor: "rgba(28,28,30,0.72)", borderColor: "rgba(255,255,255,0.14)", extraCssText: "backdrop-filter: blur(16px) saturate(170%); -webkit-backdrop-filter: blur(16px) saturate(170%); border-radius: 14px; box-shadow: 0 12px 32px -10px rgba(0,0,0,.6);", textStyle: { color: "#fff", fontFamily: "Inter" },
+        formatter: p => {
+          if (p.seriesType !== "heatmap") return "";
+          const [m, a, , real, razon] = p.value;
+          let juicio = "";
+          if (razon >= 1.25) juicio = `<b style="color:#ff8c42">${razon.toFixed(1).replace(".", ",")} veces lo normal</b> para ${MESES[m].toLowerCase()}`;
+          else if (razon > 0.8) juicio = `Normal para ${MESES[m].toLowerCase()}`;
+          else juicio = `<b style="color:#6fc3ff">Menos de lo normal</b> (${Math.round(razon * 100)} %)`;
+          const enCurso = a === NA - 1 && m + 1 === CAL.ultimoMes
+            ? `<br><span style="opacity:.7">Mes en curso: datos hasta el ${Number(DATOS_MAPA.meta.ultimaFecha.slice(8, 10))}</span>` : "";
+          return `<b>${MESES[m]} de ${AÑOS_TXT[a]}</b><br>${fmt(real)} focos de fuego<br>${juicio}${enCurso}<br><span style="opacity:.6">Clic para verlo en el mapa</span>`;
+        }
+      },
+      grid: [
+        { left: 56, right: "35%", top: 30, bottom: 70 },          // el calendario
+        { left: "67%", right: 96, top: 30, bottom: 70 },          // total de cada año
+      ],
+      xAxis: [
+        { type: "category", data: MESES_CORTOS, position: "top", axisLabel: { color: "#c8c5bd", fontFamily: "Inter" },
+          axisLine: { show: false }, axisTick: { show: false } },
+        { type: "value", gridIndex: 1, position: "top", max: maxAnual, name: "Total del año", nameLocation: "middle", nameGap: 22,
+          nameTextStyle: { color: "#c8c5bd", fontFamily: "Inter", fontWeight: "bold" }, axisLabel: { show: false }, splitLine: { show: false } },
+      ],
+      yAxis: [
+        { type: "category", data: AÑOS_TXT, inverse: true,
+          axisLabel: { color: "#c8c5bd", fontFamily: "Inter",
+                       formatter: v => v === AÑOS_TXT[NA - 1] ? `{actual|${v} ▸}` : v,
+                       rich: { actual: { color: "#c9a54c", fontWeight: "bold", fontFamily: "Inter" } } },
+          axisLine: { show: false }, axisTick: { show: false } },
+        { type: "category", data: AÑOS_TXT, inverse: true, gridIndex: 1, axisLabel: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
+      ],
+      visualMap: anomalia
+        ? { type: "continuous", min: -2, max: 2, seriesIndex: 0, orient: "horizontal", left: "center", bottom: 10, itemWidth: 14, calculable: false,
+            text: ["Más fuego de lo normal", "Menos de lo normal"], textStyle: { color: "#c8c5bd", fontFamily: "Inter" },
+            inRange: { color: ["#3d8fd6", "#2c4f6e", "#48484a", "#c2410c", "#ffd166"] } }
+        : { type: "piecewise", seriesIndex: 0, dimension: 2, orient: "horizontal", left: "center", bottom: 4,
+            itemWidth: 14, itemHeight: 12, itemGap: 10, textStyle: { color: "#c8c5bd", fontFamily: "Inter", fontSize: 11 },
+            pieces: niveles.map(n => ({ ...(n.min !== undefined && { gte: n.min }), ...(n.max !== undefined && { lt: n.max }), color: n.color, label: n.label })) },
+      series: [{
+        type: "heatmap", data: puntos,
+        itemStyle: { borderColor: "#1c1c1e", borderWidth: 2, borderRadius: 4 },
+        emphasis: { itemStyle: { borderColor: "#ffffff", borderWidth: 2 } },
+        markLine: {
+          silent: true, symbol: "none", label: { show: false },
+          lineStyle: { color: "#6fc3ff", type: "dashed", width: 1.5 },
+          data: [{ yAxis: "2002" }, { yAxis: "2012" }]
+        }
+      }, {
+        // Barras con el total de cada año: aquí se ve clarito el salto falso de 2012
+        type: "bar", xAxisIndex: 1, yAxisIndex: 1, barWidth: "65%", tooltip: { show: false },
+        data: anuales.map((v, a) => ({
+          value: Math.round(v),
+          itemStyle: { borderRadius: [0, 4, 4, 0],
+                       color: a === NA - 1 ? "#c9a54c77" : (!CAL.armonizado && A0 + a < 2012 ? "#6e6c68" : "#c9a54c") }
+        })),
+        label: { show: true, position: "right", color: "#c8c5bd", fontSize: 10.5, fontFamily: "Inter",
+                 formatter: p => {
+                   const v = p.value, d = difAño(p.dataIndex);
+                   const num = v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1).replace(".", ",") + " mil" : String(v);
+                   const comp = Math.abs(d) < 5 ? "{igual|≈}" : d > 0 ? `{mas|▲ ${Math.round(d)}%}` : `{menos|▼ ${Math.abs(Math.round(d))}%}`;
+                   return `${num}  ${comp}`;
+                 },
+                 rich: { mas: { color: "#ff6b6b", fontWeight: "bold", fontSize: 10.5 }, menos: { color: "#3ccf7a", fontWeight: "bold", fontSize: 10.5 },
+                         igual: { color: "#8e8e93", fontSize: 10.5 } } },
+        markLine: {
+          silent: true, symbol: "none",
+          lineStyle: { color: "#6fc3ff", type: "dashed", width: 1.5 },
+          label: { position: "insideEndTop", color: "#6fc3ff", fontFamily: "Inter", fontSize: 10.5 },
+          data: [
+            { yAxis: "2002", label: { formatter: "Llega Aqua (jul 2002)" } },
+            { yAxis: "2012", label: { formatter: "Llega VIIRS (ene 2012)" } },
+          ]
+        }
+      }]
+    }, true);
+  }
+
+  // ---------- 3. Temporada y año típico ----------
+  function dibujarTemporada({ arm }) {
+    const normal = promedioPorMes(arm);
+    const nombre = document.getElementById("calLugar").textContent;
+    const el = document.getElementById("calTemporada");
+    if (Math.max(...normal) < 1) {
+      el.innerHTML = `En ${nombre} casi no se detecta fuego, así que no hay una temporada de quemas clara. 🌿`;
+    } else {
+      const t = temporada(normal);
+      const mesHoy = CAL.ultimoMes - 1;
+      const ahora = estaEnTemporada(mesHoy, t)
+        ? `🔥 <b>Ahora mismo estamos en temporada de quemas.</b>`
+        : `⏳ La próxima temporada empieza en <b>${(t.ini - mesHoy + 12) % 12} ${(t.ini - mesHoy + 12) % 12 === 1 ? "mes" : "meses"}</b>.`;
+      el.innerHTML = `En ${nombre}, la temporada de quemas va de <b>${MESES[t.ini].toLowerCase()}</b> a <b>${MESES[t.fin].toLowerCase()}</b>, ` +
+        `con el pico en <b>${MESES[t.pico].toLowerCase()}</b>. En esos meses ocurre el <b>${Math.round(t.porcentaje * 100)} %</b> del fuego del año.<br><br>${ahora}`;
+    }
+
+  }
+
+  // Gráfico "Año típico vs. año seleccionado"
+  function dibujarAñoTipico(a) {
+    const serie = CAL.armonizado ? CAL.series.arm : CAL.series.cru;
+    const normal = promedioPorMes(serie);
+    const actual = MESES_CORTOS.map((_, i) => esFuturo(a, i + 1) ? null : Math.round(serie[pos(a, i + 1)]));
+    document.getElementById("calAñoActual").textContent = AÑOS_TXT[a];
+    graficoMeses.setOption({
+      tooltip: { trigger: "axis", backgroundColor: "rgba(28,28,30,0.72)", borderColor: "rgba(255,255,255,0.14)", extraCssText: "backdrop-filter: blur(16px) saturate(170%); -webkit-backdrop-filter: blur(16px) saturate(170%); border-radius: 14px; box-shadow: 0 12px 32px -10px rgba(0,0,0,.6);", textStyle: { color: "#fff", fontFamily: "Inter" },
+                 valueFormatter: v => v == null ? "—" : fmt(v) },
+      grid: { left: 46, right: 10, top: 10, bottom: 24 },
+      xAxis: { type: "category", data: MESES_CORTOS, axisLabel: { color: "#c8c5bd", fontSize: 11 }, axisTick: { show: false }, axisLine: { lineStyle: { color: "#2e2e30" } } },
+      yAxis: { type: "value", axisLabel: { color: "#c8c5bd", fontSize: 11, formatter: v => fmt(v) }, splitLine: { lineStyle: { color: "#2a2a2c" } } },
+      series: [
+        { name: "Año típico", type: "bar", data: normal.map(Math.round), itemStyle: { color: "#c9a54c", borderRadius: [4, 4, 0, 0] } },
+        { name: AÑOS_TXT[a], type: "line", data: actual, symbolSize: 6, lineStyle: { color: "#ff4d4d", width: 2.5 }, itemStyle: { color: "#ff4d4d" } },
+      ]
+    }, true);
+  }
+
+  // ---------- Resumen de un año (tarjeta "Resumen del año") ----------
+  function mostrarDetalle(a) {
+    if (a == null || a < 0 || a >= NA || !CAL.series) return;
+    CAL.añoMostrado = a;
+    const serie = CAL.armonizado ? CAL.series.arm : CAL.series.cru;
+    const lugar = document.getElementById("calLugar").textContent;
+    const esActual = a === NA - 1;
+    const mMax = esActual ? CAL.ultimoMes : 12;
+    const total = a2 => { let t = 0; for (let m = 1; m <= mMax; m++) t += serie[pos(a2, m)]; return t; };
+    const valor = total(a);
+    const otros = Array.from({ length: NA - 1 }, (_, x) => total(x));
+    const promedio = otros.reduce((x, y) => x + y, 0) / otros.length;
+    const dif = promedio ? (valor / promedio - 1) * 100 : 0;
+    const puesto = [...otros, ...(esActual ? [] : [])].filter((v, x) => x !== a && v > valor).length + 1;
+    const meses = MESES_CORTOS.map((_, i) => serie[pos(a, i + 1)]);
+    const peorMes = meses.slice(0, mMax).indexOf(Math.max(...meses.slice(0, mMax)));
+
+    let etiqueta, color;
+    if (promedio < 1) { etiqueta = "Sin fuego"; color = "#8e8e93"; }
+    else if (dif >= 25) { etiqueta = "▲ Muy por encima"; color = "#ff6b6b"; }
+    else if (dif >= 8) { etiqueta = "▲ Por encima"; color = "#ffb347"; }
+    else if (dif > -8) { etiqueta = "≈ Normal"; color = "#c8c5bd"; }
+    else { etiqueta = "▼ Por debajo"; color = "#3ccf7a"; }
+
+    const periodo = esActual ? `En lo que va de ${AÑOS_TXT[a]} (enero a ${MESES[mMax - 1].toLowerCase()})` : `En ${AÑOS_TXT[a]}`;
+    const comparacion = promedio < 1 ? "" :
+      Math.abs(dif) < 8 ? `, parecido a un año promedio (${fmt(promedio)})`
+      : `, <b style="color:${dif > 0 ? "#ff6b6b" : "#3ccf7a"}">${Math.abs(Math.round(dif))} % ${dif > 0 ? "más" : "menos"}</b> que un año promedio (${fmt(promedio)})`;
+    const texto = valor < 1 ? `${periodo} no se detectó fuego en ${lugar}. 🌿`
+      : `${periodo} hubo <b>${fmt(valor)} focos</b> en ${lugar}${comparacion}. ` +
+        `El mes más fuerte fue <b>${MESES[peorMes].toLowerCase()}</b> (${fmt(meses[peorMes])}). ` +
+        `Es el año <b>#${puesto} de ${NA}</b> con más fuego${esActual ? " a esta fecha" : ""}.`;
+
+    const maxBarra = Math.max(1, ...meses, ...promedioPorMes(serie));
+    const nivelDe = v => (CAL.niveles || []).find(n => (n.min === undefined || v >= n.min) && (n.max === undefined || v < n.max));
+    const barras = meses.map((v, i) => esFuturo(a, i + 1)
+      ? `<i class="futuro" title="${MESES[i]}: sin datos todavía"></i>`
+      : `<i style="height:${Math.max(4, v / maxBarra * 100)}%; background:${(nivelDe(v) || {}).color || "#c9a54c"}" title="${MESES[i]}: ${fmt(v)} focos · ${(nivelDe(v) || {}).nombre || ""}"></i>`).join("");
+
+    document.getElementById("calDetalle").innerHTML = `
+      <div class="da-fila"><span class="da-año">${AÑOS_TXT[a]}</span>
+        <span class="da-etiqueta" style="color:${color}; border-color:${color}55; background:${color}14">${etiqueta}</span></div>
+      <p class="da-texto">${texto}</p>
+      <div class="mini-meses">${barras}</div>
+      <div class="mini-etq">${MESES_CORTOS.map(m => `<span>${m[0]}</span>`).join("")}</div>`;
+    dibujarAñoTipico(a);
+  }
+
+  // ---------- Conclusiones principales (tarjetas de arriba) ----------
+  function dibujarKpis() {
+    const arm = CAL.series.arm;
+    const anual = AÑOS_TXT.map((_, a) => { let t = 0; for (let m = 1; m <= 12; m++) t += arm[pos(a, m)]; return t; });
+    const completos = anual.slice(0, NA - 1);
+    const prom = completos.reduce((x, y) => x + y, 0) / completos.length;
+    const peor = completos.indexOf(Math.max(...completos));
+    const normal = promedioPorMes(arm);
+    const pico = normal.indexOf(Math.max(...normal));
+    let num = 0, den = 0; const mx = (completos.length - 1) / 2;
+    completos.forEach((y, x) => { num += (x - mx) * (y - prom); den += (x - mx) ** 2; });
+    const tend = prom >= 1 && den ? (num / den) * 10 / prom * 100 : 0;
+    const hasta = a => { let t = 0; for (let m = 1; m <= CAL.ultimoMes; m++) t += arm[pos(a, m)]; return t; };
+    const promHoy = Array.from({ length: NA - 1 }, (_, a) => hasta(a)).reduce((x, y) => x + y, 0) / (NA - 1);
+    const difHoy = promHoy ? (hasta(NA - 1) / promHoy - 1) * 100 : 0;
+    const flecha = d => Math.abs(d) < 5 ? "≈ 0 %" : `${d > 0 ? "▲" : "▼"} ${Math.abs(Math.round(d))} %`;
+    const clase = d => Math.abs(d) < 5 ? "" : d > 0 ? "k-mal" : "k-bien";
+    const k = [
+      { et: "Año con más fuego", val: prom >= 1 ? AÑOS_TXT[peor] : "—", cls: "k-oro", sub: prom >= 1 ? `${fmt(completos[peor])} focos en el año` : "Sin fuego registrado" },
+      { et: "Mes más fuerte", val: prom >= 1 ? MESES[pico] : "—", cls: "", sub: "en un año típico" },
+      { et: "Tendencia desde 2001", val: prom >= 1 ? flecha(tend) : "—", cls: clase(tend), sub: "por década (datos armonizados)" },
+      { et: `${AÑOS_TXT[NA - 1]} hasta hoy`, val: promHoy >= 1 ? flecha(difHoy) : "—", cls: clase(difHoy), sub: `frente al promedio de enero a ${MESES[CAL.ultimoMes - 1].toLowerCase()}` },
+    ];
+    document.getElementById("calKpis").innerHTML = k.map(x =>
+      `<div class="card kpi"><div class="k-et">${x.et}</div><div class="k-val ${x.cls}">${x.val}</div><div class="k-sub">${x.sub}</div></div>`).join("");
+  }
+
+  // ---------- 4. Textos ----------
+  function textosCalendario() {
+    const exp = document.getElementById("calExplicacion");
+    exp.classList.toggle("aviso", !CAL.armonizado);
+    const lugar = document.getElementById("calLugar").textContent;
+    const total = a => { let t = 0; for (let m = 1; m <= 12; m++) t += (CAL.armonizado ? CAL.series.arm : CAL.series.cru)[pos(a, m)]; return t; };
+    const t2011 = total(10), t2013 = total(12);
+    const veces = t2011 > 0 ? (t2013 / t2011) : 0;
+    exp.innerHTML = CAL.armonizado
+      ? `✅ <b>Datos armonizados:</b> todos los años se pueden comparar de forma justa. Prueba "Sin armonizar" para ver el error que corregimos.`
+      : `⚠️ <b>Datos sin armonizar:</b> antes de 2012 las barras son cortas (grises) solo porque el satélite viejo (MODIS) veía menos` +
+        (veces >= 1.5 ? ` — en ${lugar}, de 2011 (${fmt(t2011)}) a 2013 (${fmt(t2013)}) parece que el fuego se multiplicó por ${veces.toFixed(1).replace(".", ",")}` : "") +
+        `. <b>No es real: presiona "Armonizado".</b>`;
+    document.getElementById("calLeyendaModo").innerHTML = CAL.modo === "cantidad"
+      ? `es la cantidad de fuego: <span style="color:#a5a29b">gris</span> = poco · <span style="color:#ff5a3a">rojo</span> = mucho`
+      : `compara con lo normal: <span style="color:#6fc3ff">azul</span> = menos · <span style="color:#ffb347">naranja</span> = más`;
+  }
+
+  // ---------- 5. Función principal ----------
+  function actualizarCalendario() {
+    const u = seleccion ? UNIDADES[seleccion.tipo].lista[seleccion.id] : null;
+    document.getElementById("calLugar").textContent = u ? u.nombre : "Colombia";
+    const series = serieMensual();
+    CAL.series = series;
+    textosCalendario();
+    dibujarCalendario(series);
+    dibujarTemporada(series);
+    dibujarKpis();
+    mostrarDetalle(CAL.añoFijo ?? NA - 1);
+  }
+
+  // ---------- 6. Botones y conexión con el mapa ----------
+  document.querySelectorAll("[data-cal-arm]").forEach(b => b.addEventListener("click", () => {
+    CAL.armonizado = b.dataset.calArm === "1";
+    document.querySelectorAll("[data-cal-arm]").forEach(x => x.classList.toggle("activo", x === b));
+    actualizarCalendario();
+  }));
+  document.querySelectorAll("[data-cal-modo]").forEach(b => b.addEventListener("click", () => {
+    CAL.modo = b.dataset.calModo;
+    document.querySelectorAll("[data-cal-modo]").forEach(x => x.classList.toggle("activo", x === b));
+    actualizarCalendario();
+  }));
+
+  // Pasar el mouse por una fila o una barra → "Resumen del año" muestra ese año
+  graficoCal.on("mouseover", p => {
+    const a = p.seriesType === "heatmap" ? p.value[1] : p.seriesType === "bar" ? p.dataIndex : null;
+    if (a !== null && a !== CAL.añoMostrado) mostrarDetalle(a);
+  });
+  // Al salir del calendario, vuelve al año fijado (por defecto, el año actual)
+  graficoCal.on("globalout", () => mostrarDetalle(CAL.añoFijo ?? NA - 1));
+  // Clic en una barra de "Total del año" → deja fijo ese año en el resumen
+  graficoCal.on("click", p => {
+    if (p.seriesType !== "bar") return;
+    CAL.añoFijo = p.dataIndex;
+    mostrarDetalle(p.dataIndex);
+  });
+
+  // Clic en un mes → el mapa muestra ese mes (usa los mismos filtros del mapa)
+  graficoCal.on("click", p => {
+    if (p.seriesType !== "heatmap") return;
+    const [m, a] = p.value;
+    CAL.marcado = [a, m + 1];
+    selAño.value = String(A0 + a);
+    selMes.value = String(m + 1);
+    aplicarFiltros();            // actualizarMapa(filtrarDatos(año, mes)) → también refresca el calendario
+    location.hash = "#mapa";     // ir a la página del mapa
+  });
+  // Si cambian los filtros del mapa a mano, el calendario marca ese mes
+  [selAño, selMes].forEach(s => s.addEventListener("change", () => {
+    CAL.marcado = selAño.value && selMes.value ? [Number(selAño.value) - A0, Number(selMes.value)] : null;
+    actualizarCalendario();
+  }));
+
+  actualizarCalendario();
+  </script>
+  <script>
+  // =====================================================================
+  // ALERTA TEMPRANA
+  // Usa el mismo lugar del mapa ("seleccion") y las series del calendario (CAL.series)
+  // =====================================================================
+  const HOY = {
+    mes: Number(DATOS_MAPA.meta.ultimaFecha.slice(5, 7)),
+    dia: Number(DATOS_MAPA.meta.ultimaFecha.slice(8, 10)),
+  };
+  const diasDelMes = m => new Date(AÑO_FIN, m, 0).getDate();
+  // Fracción del año que ya pasó, mes a mes: enero..(mes anterior) completos + parte del mes actual
+  const pesoMes = m => m < HOY.mes ? 1 : (m === HOY.mes ? HOY.dia / diasDelMes(m) : 0);
+  const fechaHoyTexto = `${HOY.dia} de ${MESES[HOY.mes - 1].toLowerCase()}`;
+
+  const graficoAcum = echarts.init(document.getElementById("graficoAcumulado"));
+  window.addEventListener("resize", () => graficoAcum.resize());
+
+  // Focos "en lo que va del año" para el año a (los años viejos se cortan en la misma fecha)
+  function hastaHoy(serie, a) {
+    let t = 0;
+    for (let m = 1; m <= 12; m++) t += serie[pos(a, m)] * (a === NA - 1 ? (m <= HOY.mes ? 1 : 0) : pesoMes(m));
+    return t;
+  }
+
+  // ---------- 1. Semáforo ----------
+  function semaforo(arm) {
+    const actual = hastaHoy(arm, NA - 1);
+    const previos = Array.from({ length: NA - 1 }, (_, a) => hastaHoy(arm, a));
+    const mediana = percentil(previos, 0.5);
+    const percentilActual = previos.filter(p => p < actual).length / previos.length;
+    const puesto = previos.filter(p => p > actual).length + 1;
+    const lugar = document.getElementById("alertaLugar").textContent;
+
+    let luz, nivel;
+    if (mediana < 3)                 { luz = null;       nivel = "Muy poca actividad de fuego"; }
+    else if (percentilActual >= 0.8) { luz = "rojo";     nivel = "🔴 Muy por encima de lo normal"; }
+    else if (percentilActual >= 0.6) { luz = "amarillo"; nivel = "🟡 Algo por encima de lo normal"; }
+    else if (percentilActual >= 0.2) { luz = "verde";    nivel = "🟢 Dentro de lo normal"; }
+    else                             { luz = "verde";    nivel = "🟢 Por debajo de lo normal"; }
+
+    document.querySelectorAll(".luz").forEach(l => l.classList.toggle("on", l.dataset.luz === luz));
+    document.getElementById("alertaNivel").textContent = nivel;
+    const dif = mediana ? (actual / mediana - 1) * 100 : 0;
+    document.getElementById("alertaTexto").innerHTML = mediana < 3
+      ? `En ${lugar} casi no hay fuego en esta época del año, así que no hay alerta. 🌿`
+      : `Del 1 de enero al ${fechaHoyTexto} de ${AÑO_FIN} van <b>${fmt(actual)} focos</b> en ${lugar}. ` +
+        `Un año normal, a esta misma fecha, lleva unos <b>${fmt(mediana)}</b> ` +
+        `(${dif >= 0 ? "+" : "−"}${Math.abs(Math.round(dif))} %).<br>` +
+        `${AÑO_FIN} va en el puesto <b>${puesto} de ${NA}</b> años (1 = el peor).`;
+  }
+
+  // ---------- 2. Cuenta regresiva de la temporada ----------
+  function cuentaRegresiva(arm) {
+    const normal = promedioPorMes(arm);
+    const lugar = document.getElementById("alertaLugar").textContent;
+    const num = document.getElementById("cuentaNumero");
+    const txt = document.getElementById("cuentaTexto");
+    const rec = document.getElementById("recomendaciones");
+    if (Math.max(...normal) < 1) {
+      num.textContent = "—";
+      txt.innerHTML = `${lugar} no tiene una temporada de quemas clara.`;
+      rec.innerHTML = "";
+      return;
+    }
+    const t = temporada(normal);
+    const hoy = new Date(AÑO_FIN, HOY.mes - 1, HOY.dia);
+    const mesHoy = HOY.mes - 1;
+    let consejos;
+    if (estaEnTemporada(mesHoy, t)) {
+      const finTemporada = new Date(AÑO_FIN + (t.fin < mesHoy ? 1 : 0), t.fin + 1, 0);
+      const dias = Math.round((finTemporada - hoy) / 864e5);
+      num.textContent = "🔥 Ahora";
+      txt.innerHTML = `${lugar} <b>está en temporada de quemas</b> (de ${MESES[t.ini].toLowerCase()} a ${MESES[t.fin].toLowerCase()}). ` +
+                      `Suele terminar en unos <b>${dias} días</b>. El pico es en ${MESES[t.pico].toLowerCase()}.`;
+      consejos = ["Mantener brigadas y vigilancia activas", "Evitar quemas agrícolas y de basuras", "Reportar cualquier incendio a las autoridades"];
+    } else {
+      let inicio = new Date(AÑO_FIN, t.ini, 1);
+      if (inicio <= hoy) inicio = new Date(AÑO_FIN + 1, t.ini, 1);
+      const dias = Math.round((inicio - hoy) / 864e5);
+      num.textContent = `${dias} días`;
+      txt.innerHTML = `faltan para que empiece la temporada de quemas en ${lugar} ` +
+                      `(de <b>${MESES[t.ini].toLowerCase()}</b> a <b>${MESES[t.fin].toLowerCase()}</b>, pico en ${MESES[t.pico].toLowerCase()}). ` +
+                      `En esos meses ocurre el <b>${Math.round(t.porcentaje * 100)} %</b> del fuego del año.` +
+                      (dias <= 60 ? `<br>⚠️ <b>¡Hora de prepararse!</b>` : "");
+      consejos = dias <= 60
+        ? ["Revisar equipos y brigadas contra incendios", "Limpiar cortafuegos y vegetación seca", "Planear las quemas agrícolas con permiso y fuera del pico"]
+        : ["Planear la prevención con tiempo", "Revisar las zonas que más se quemaron en años anteriores"];
+    }
+    rec.innerHTML = consejos.map(c => `<li>${c}</li>`).join("");
+  }
+
+  // ---------- 3. Ranking de municipios (o departamentos) este año ----------
+  // Para cada unidad: focos en lo que va del año, para cada uno de los 26 años
+  const cacheHastaHoy = {};
+  function hastaHoyPorUnidad(tipo) {
+    if (cacheHastaHoy[tipo] && cacheHastaHoy[tipo].length === UNIDADES[tipo].lista.length) return cacheHastaHoy[tipo];
+    const n = UNIDADES[tipo].lista.length;
+    const tabla = Array.from({ length: n }, () => new Float64Array(NA));
+    for (const c of celdas) {
+      for (const [a, m, focos] of c.serie) {
+        const peso = a === NA - 1 ? (m <= HOY.mes ? 1 : 0) : pesoMes(m);
+        if (!peso) continue;
+        for (const [id, frac] of c.partes[tipo]) tabla[id][a] += focos * frac * peso;
+      }
+    }
+    return (cacheHastaHoy[tipo] = tabla);
+  }
+
+  function ranking() {
+    const tipo = UNIDADES.mun.cargado ? "mun" : (UNIDADES.depto.cargado ? "depto" : null);
+    const lista = document.getElementById("ranking");
+    if (!tipo) { lista.innerHTML = "<li>Faltan los límites de municipios/departamentos.</li>"; return; }
+    const tabla = hastaHoyPorUnidad(tipo);
+
+    // ¿Dentro de qué departamento buscamos?
+    let filtroDepto = null;
+    if (seleccion && tipo === "mun") {
+      filtroDepto = seleccion.tipo === "depto" ? UNIDADES.depto.lista[seleccion.id].nombre : UNIDADES.mun.lista[seleccion.id].depto;
+    }
+    document.getElementById("rankingTitulo").textContent =
+      `${tipo === "mun" ? "Municipios" : "Departamentos"} con más fuego en ${AÑO_FIN}` + (filtroDepto ? ` · ${filtroDepto}` : "");
+
+    const filas = UNIDADES[tipo].lista
+      .filter(u => !filtroDepto || u.depto === filtroDepto)
+      .map(u => {
+        const previos = Array.from(tabla[u.id].slice(0, NA - 1));
+        return { u, actual: tabla[u.id][NA - 1], normal: previos.reduce((s, v) => s + v, 0) / previos.length };
+      })
+      .filter(f => f.actual >= 0.5)
+      .sort((x, y) => y.actual - x.actual)
+      .slice(0, 6);
+
+    lista.innerHTML = filas.length ? filas.map(f => {
+      const r = f.normal >= 1 ? f.actual / f.normal : null;
+      const comp = r === null ? "" : r >= 1.25 ? `<span class="rk-comp" style="color:#ff6b6b">▲ ${r.toFixed(1).replace(".", ",")}× lo normal</span>`
+                 : r <= 0.8 ? `<span class="rk-comp" style="color:#6fc3ff">▼ menos de lo normal</span>` : `<span class="rk-comp" style="opacity:.6">≈ normal</span>`;
+      const actual = seleccion && seleccion.tipo === tipo && seleccion.id === f.u.id;
+      return `<li data-tipo="${tipo}" data-id="${f.u.id}" class="${actual ? "actual" : ""}">
+        <div><div class="rk-nombre">${f.u.nombre}</div>${tipo === "mun" && f.u.depto ? `<div class="rk-depto">${f.u.depto}</div>` : ""}</div>
+        <div class="rk-valor">${fmt(f.actual)}<br>${comp}</div></li>`;
+    }).join("") : "<li>Sin fuego detectado este año 🌿</li>";
+
+    lista.querySelectorAll("li[data-id]").forEach(li => li.onclick = () => {
+      const tipoLi = li.dataset.tipo, id = Number(li.dataset.id);
+      seleccion = { tipo: tipoLi, id };
+      refrescarEstilos();
+      const capa = UNIDADES[tipoLi].capa.getLayers ? UNIDADES[tipoLi].capa.getLayers().find(l => l.feature.properties.__id === id) : null;
+      actualizarPanel();
+      location.hash = "#mapa";   // ir a la página del mapa y, ya visible, acercar al lugar
+      if (capa) setTimeout(() => { mapa.invalidateSize(); mapa.flyToBounds(capa.getBounds(), { padding: [30, 30], duration: 0.6, maxZoom: 9 }); }, 120);
+    });
+  }
+
+  // ---------- 4. Gráfica acumulada ----------
+  function graficaAcumulada(arm) {
+    const acumulado = a => { let t = 0; return MESES_CORTOS.map((_, i) => (t += arm[pos(a, i + 1)])); };
+    const historicos = Array.from({ length: NA - 1 }, (_, a) => acumulado(a));
+    const p10 = [], p50 = [], p90 = [];
+    for (let i = 0; i < 12; i++) {
+      const v = historicos.map(h => h[i]);
+      p10.push(Math.round(percentil(v, 0.1))); p50.push(Math.round(percentil(v, 0.5))); p90.push(Math.round(percentil(v, 0.9)));
+    }
+    const actual = acumulado(NA - 1).map((v, i) => i + 1 <= HOY.mes ? Math.round(v) : null);
+    graficoAcum.setOption({
+      tooltip: { trigger: "axis", backgroundColor: "rgba(28,28,30,0.72)", borderColor: "rgba(255,255,255,0.14)", extraCssText: "backdrop-filter: blur(16px) saturate(170%); -webkit-backdrop-filter: blur(16px) saturate(170%); border-radius: 14px; box-shadow: 0 12px 32px -10px rgba(0,0,0,.6);", textStyle: { color: "#fff", fontFamily: "Inter" },
+                 formatter: ps => {
+                   const i = ps[0].dataIndex;
+                   return `<b>Hasta fin de ${MESES[i].toLowerCase()}</b><br>Año típico: ${fmt(p50[i])}<br>Rango normal: ${fmt(p10[i])} – ${fmt(p90[i])}` +
+                          (actual[i] != null ? `<br><b style="color:#ff6b6b">${AÑOS_TXT[NA - 1]}: ${fmt(actual[i])}</b>${i + 1 === HOY.mes ? ` (hasta el ${HOY.dia})` : ""}` : "");
+                 } },
+      legend: { top: 0, textStyle: { color: "#c8c5bd", fontFamily: "Inter" }, data: ["Año típico", AÑOS_TXT[NA - 1]] },
+      grid: { left: 60, right: 20, top: 36, bottom: 28 },
+      xAxis: { type: "category", data: MESES_CORTOS, boundaryGap: false, axisLabel: { color: "#c8c5bd" }, axisLine: { lineStyle: { color: "#2e2e30" } } },
+      yAxis: { type: "value", axisLabel: { color: "#c8c5bd", formatter: v => fmt(v) }, splitLine: { lineStyle: { color: "#2a2a2c" } } },
+      series: [
+        { name: "base", type: "line", data: p10, stack: "rango", symbol: "none", lineStyle: { opacity: 0 }, silent: true },
+        { name: "Rango normal", type: "line", data: p90.map((v, i) => v - p10[i]), stack: "rango", symbol: "none",
+          lineStyle: { opacity: 0 }, areaStyle: { color: "rgba(201,165,76,0.22)" }, silent: true },
+        { name: "Año típico", type: "line", data: p50, symbol: "none", lineStyle: { color: "#a5a29b", type: "dashed", width: 2 }, itemStyle: { color: "#a5a29b" } },
+        { name: AÑOS_TXT[NA - 1], type: "line", data: actual, symbolSize: 7, lineStyle: { color: "#ff4d4d", width: 3 }, itemStyle: { color: "#ff4d4d" } },
+      ]
+    }, true);
+  }
+
+  // ---------- 5. Función principal ----------
+  function actualizarAlerta() {
+    const u = seleccion ? UNIDADES[seleccion.tipo].lista[seleccion.id] : null;
+    document.getElementById("alertaLugar").textContent = u ? u.nombre : "Colombia";
+    const { arm } = CAL.series || serieMensual();
+    semaforo(arm);
+    cuentaRegresiva(arm);
+    ranking();
+    graficaAcumulada(arm);
+  }
+  actualizarAlerta();
+  </script>
+
+  <script>
+  // =====================================================================
+  // VIAJE EN EL TIEMPO
+  // Línea de 26 años: pasar el mouse = resumen del año; clic = el mapa viaja a ese año.
+  // Luego se puede elegir un mes o reproducir el año completo, despacio y con transiciones suaves.
+  // =====================================================================
+  const VJ = {
+    meses: (NA - 1) * 12 + Number(DATOS_MAPA.meta.ultimaFecha.slice(5, 7)),   // meses con datos
+    ultimoMes: Number(DATOS_MAPA.meta.ultimaFecha.slice(5, 7)),
+    año: null, mes: null,           // lo que se está viendo (null = todos los años)
+    timer: null, modo: null,        // "año" (reproduce los meses de un año) o "todo" (recorre los 25 años)
+    listo: false, animacion: null,
+    PASO_MES: 1600,                 // milisegundos por mes al reproducir un año
+    PASO_AÑO: 1800,                 // milisegundos por año al recorrer los 25 años
+  };
+  window.VIAJE_ACTIVO = false;      // mientras está activo, el viaje controla el mapa de calor
+  const COLORES_FUEGO = ["#5b4a33", "#a8742e", "#e8892c", "#f25a2a", "#ff2e2e"];
+  const colorFuego = t => COLORES_FUEGO[Math.min(COLORES_FUEGO.length - 1, Math.floor(Math.max(0, t) * COLORES_FUEGO.length))];
+
+  // ---------- 1. Datos del mapa de calor por año y por mes (se preparan una sola vez) ----------
+  function prepararViaje() {
+    if (VJ.listo) return;
+    const n = celdas.length;
+    VJ.mensual = new Float32Array(VJ.meses * n);
+    VJ.anual = new Float32Array(NA * n);
+    celdas.forEach((c, i) => {
+      for (const [a, m, f] of c.serie) {
+        const k = a * 12 + m - 1;
+        if (k < VJ.meses) VJ.mensual[k * n + i] = f;
+        VJ.anual[a * n + i] += f;
+      }
+    });
+    // Una escala FIJA para todos los meses (y otra para todos los años): así se comparan entre sí
+    const tope = arr => { const v = Array.from(arr).filter(x => x > 0).sort((x, y) => x - y); return Math.max(1, v[Math.floor(0.98 * (v.length - 1))] || 1); };
+    VJ.topeMes = tope(VJ.mensual);
+    VJ.topeAño = tope(VJ.anual);
+    VJ.actual = new Float32Array(n);   // lo que se ve ahora en el mapa (de 0 a 1 por celda)
+    VJ.listo = true;
+  }
+
+  // ---------- 2. Transición suave del mapa de calor ----------
+  function animarCalor(tipo, indice) {
+    if (!mapa.hasLayer(capaCalor)) return;
+    prepararViaje();
+    const n = celdas.length;
+    const fuente = tipo === "año" ? VJ.anual : VJ.mensual, tope = tipo === "año" ? VJ.topeAño : VJ.topeMes;
+    const destino = new Float32Array(n);
+    for (let i = 0; i < n; i++) destino[i] = Math.min(1, fuente[indice * n + i] / tope);
+    const desde = VJ.actual.slice();
+    const inicio = performance.now(), duracion = 950;
+    let ultimoDibujo = 0;
+    cancelAnimationFrame(VJ.animacion);
+    const suave = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;      // aceleración tipo Apple
+    const paso = ahora => {
+      const t = Math.min(1, (ahora - inicio) / duracion);
+      if (ahora - ultimoDibujo > 33 || t === 1) {                                     // ~30 cuadros por segundo
+        ultimoDibujo = ahora;
+        const e = suave(t), puntos = [];
+        for (let i = 0; i < n; i++) {
+          const v = VJ.actual[i] = desde[i] + (destino[i] - desde[i]) * e;
+          if (v > 0.01) puntos.push([celdas[i].lat, celdas[i].lon, v]);
+        }
+        capaCalor.setLatLngs(puntos);
+      }
+      if (t < 1) VJ.animacion = requestAnimationFrame(paso);
+    };
+    VJ.animacion = requestAnimationFrame(paso);
+  }
+
+  // ---------- 3. Serie del lugar elegido (Colombia, un departamento o un municipio) ----------
+  const serieLugar = () => (CAL.series || serieMensual()).arm;
+  const nombreLugar = () => seleccion ? UNIDADES[seleccion.tipo].lista[seleccion.id].nombre : "Colombia";
+  const totalAño = (s, a) => { let t = 0; for (let m = 1; m <= 12; m++) t += s[pos(a, m)]; return t; };
+
+  // ---------- 4. Etiqueta flotante sobre el mapa ----------
+  function mostrarInsignia() {
+    const el = document.getElementById("insignia");
+    if (!window.VIAJE_ACTIVO || VJ.año === null) { el.classList.remove("visible"); return; }
+    const s = serieLugar(), a = VJ.año, m = VJ.mes;
+    let valor, ref, fecha;
+    if (m) {
+      valor = s[pos(a, m)];
+      ref = 0; for (let x = 0; x < NA - 1; x++) ref += s[pos(x, m)]; ref /= (NA - 1);
+      fecha = `${MESES[m - 1]} ${A0 + a}`;
+    } else {
+      const mMax = a === NA - 1 ? VJ.ultimoMes : 12;
+      const hasta = x => { let t = 0; for (let mm = 1; mm <= mMax; mm++) t += s[pos(x, mm)]; return t; };
+      valor = hasta(a);
+      ref = 0; for (let x = 0; x < NA - 1; x++) ref += hasta(x); ref /= (NA - 1);
+      fecha = a === NA - 1 ? `${A0 + a} (hasta ${MESES[VJ.ultimoMes - 1].toLowerCase()})` : String(A0 + a);
+    }
+    const r = ref ? valor / ref : 1;
+    const chip = ref < 1 ? "" : r >= 1.25 ? `<span class="ins-chip mal">▲ ${r.toFixed(1).replace(".", ",")}× lo normal</span>`
+               : r <= 0.8 ? `<span class="ins-chip bien">▼ menos de lo normal</span>` : `<span class="ins-chip">≈ normal</span>`;
+    el.innerHTML = `<div class="ins-fecha">${fecha}</div><div class="ins-lugar">${nombreLugar()}</div>
+      <div class="ins-num"><b data-final="${Math.round(valor)}">0</b> focos de fuego</div>${chip}`;
+    el.classList.remove("cambia"); void el.offsetWidth; el.classList.add("visible", "cambia");
+    // el número "cuenta" hasta su valor
+    const b = el.querySelector("b"), final = Number(b.dataset.final), t0 = performance.now();
+    const contarIns = t => { const p = Math.max(0, Math.min(1, (t - t0) / 700)); b.textContent = fmt(final * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(contarIns); };
+    requestAnimationFrame(contarIns);
+  }
+
+  // ---------- 5. Barras de los 26 años + hitos ----------
+  function hitos(s) {
+    const anuales = AÑOS_TXT.map((_, a) => totalAño(s, a)), completos = anuales.slice(0, NA - 1);
+    if (Math.max(...completos) < 1) return {};
+    let kMax = 0; for (let k = 1; k < VJ.meses; k++) if (s[k] > s[kMax]) kMax = k;
+    const h = {};
+    const poner = (a, txt) => { h[a] = h[a] ? h[a] + " · " + txt : txt; };
+    poner(completos.indexOf(Math.max(...completos)), "Peor año");
+    poner(Math.floor(kMax / 12), `Récord: ${MESES_CORTOS[kMax % 12].toLowerCase()}`);
+    poner(completos.indexOf(Math.min(...completos)), "Menos fuego");
+    poner(2012 - A0, "Llega VIIRS");
+    poner(NA - 1, "Hoy");
+    return h;
+  }
+
+  function dibujarAños() {
+    const s = serieLugar();
+    const anuales = AÑOS_TXT.map((_, a) => totalAño(s, a));
+    const max = Math.max(1, ...anuales);
+    const h = hitos(s);
+    // Si dos hitos quedan muy cerca, el segundo se sube un nivel para que no se encimen
+    let ultimoHito = -10, alto = false;
+    const nivelHito = {};
+    for (let a = 0; a < NA; a++) if (h[a]) { alto = a - ultimoHito < 4 ? !alto : false; nivelHito[a] = alto; ultimoHito = a; }
+    document.getElementById("viajeAños").innerHTML = AÑOS_TXT.map((txt, a) => {
+      const t = anuales[a] / max;
+      return `<button class="vb ${VJ.año === a ? "activa" : ""} ${a === NA - 1 ? "en-curso" : ""}" data-año="${a}" aria-label="${txt}: ${fmt(anuales[a])} focos">
+        ${h[a] ? `<span class="vb-hito ${nivelHito[a] ? "alto" : ""}">${h[a]}</span>` : ""}
+        <span class="vb-barra" style="height:${Math.max(4, t * 100)}%; --c:${colorFuego(t)}"></span>
+        <span class="vb-año">${a % 5 === 0 || a === NA - 1 || VJ.año === a ? txt : "'" + txt.slice(2)}</span>
+      </button>`;
+    }).join("");
+    document.querySelectorAll("#viajeAños .vb").forEach(b => {
+      const a = Number(b.dataset.año);
+      b.addEventListener("mouseenter", () => mostrarPopup(a, b));
+      b.addEventListener("mouseleave", ocultarPopup);
+      b.addEventListener("focus", () => mostrarPopup(a, b));
+      b.addEventListener("blur", ocultarPopup);
+      b.addEventListener("click", () => { pausarViaje(); verAño(a); });
+    });
+  }
+
+  // Tarjeta de cristal con el resumen del año (al pasar el mouse)
+  function mostrarPopup(a, boton) {
+    const s = serieLugar(), pop = document.getElementById("viajePop");
+    const esActual = a === NA - 1, mMax = esActual ? VJ.ultimoMes : 12;
+    const hasta = x => { let t = 0; for (let m = 1; m <= mMax; m++) t += s[pos(x, m)]; return t; };
+    const valor = hasta(a);
+    const prom = Array.from({ length: NA - 1 }, (_, x) => hasta(x)).reduce((p, q) => p + q, 0) / (NA - 1);
+    const dif = prom ? (valor / prom - 1) * 100 : 0;
+    const meses = MESES_CORTOS.map((_, i) => s[pos(a, i + 1)]);
+    const peor = meses.slice(0, mMax).indexOf(Math.max(...meses.slice(0, mMax)));
+    const maxM = Math.max(1, ...meses);
+    pop.innerHTML = `
+      <div class="pop-año">${AÑOS_TXT[a]}${esActual ? ' <small>en curso</small>' : ""}</div>
+      <div class="pop-num">${fmt(valor)} <small>focos</small></div>
+      <div class="pop-comp ${Math.abs(dif) < 8 ? "" : dif > 0 ? "mal" : "bien"}">${prom < 1 ? "" : Math.abs(dif) < 8 ? "≈ un año normal" : `${dif > 0 ? "▲" : "▼"} ${Math.abs(Math.round(dif))} % ${dif > 0 ? "más" : "menos"} que el promedio`}</div>
+      <div class="pop-meses">${meses.map((v, i) => i < mMax ? `<i style="height:${Math.max(6, v / maxM * 100)}%; background:${colorFuego(v / maxM)}"></i>` : `<i class="vacio"></i>`).join("")}</div>
+      <div class="pop-pie">Mes más fuerte: <b>${MESES[peor].toLowerCase()}</b> · clic para viajar a este año</div>`;
+    const caja = boton.parentElement.getBoundingClientRect(), r = boton.getBoundingClientRect();
+    const x = Math.max(110, Math.min(caja.width - 110, r.left - caja.left + r.width / 2));
+    pop.style.left = x + "px";
+    pop.classList.add("visible");
+  }
+  function ocultarPopup() { document.getElementById("viajePop").classList.remove("visible"); }
+
+  // ---------- 6. Fichas de los 12 meses del año elegido ----------
+  function dibujarMeses() {
+    const panel = document.getElementById("viajeMeses");
+    if (VJ.año === null) { panel.classList.remove("visible"); return; }
+    panel.classList.add("visible");
+    const s = serieLugar(), a = VJ.año;
+    let maxM = 1; for (let k = 0; k < VJ.meses; k++) maxM = Math.max(maxM, s[k]);
+    document.getElementById("viajeAñoTitulo").textContent = AÑOS_TXT[a];
+    document.getElementById("viajeFichas").innerHTML = MESES_CORTOS.map((nombre, i) => {
+      const m = i + 1, futuro = a === NA - 1 && m > VJ.ultimoMes, v = s[pos(a, m)];
+      const t = Math.sqrt(v / maxM);
+      return `<button class="ficha ${VJ.mes === m ? "activa" : ""}" data-mes="${m}" ${futuro ? "disabled" : ""} style="--c:${colorFuego(t)}; --t:${futuro ? 0 : t}">
+        <span class="f-nombre">${nombre}</span><span class="f-valor">${futuro ? "—" : fmt(v)}</span><span class="f-nivel"></span></button>`;
+    }).join("");
+    document.querySelectorAll("#viajeFichas .ficha").forEach(f => f.addEventListener("click", () => {
+      if (VJ.modo === "todo") pausarViaje();
+      verMes(VJ.año, Number(f.dataset.mes));
+    }));
+    const btn = document.getElementById("viajePlayAño");
+    btn.innerHTML = VJ.modo === "año" ? "❚❚ Pausar" : `▶ Reproducir ${AÑOS_TXT[a]} mes a mes`;
+  }
+
+  // ---------- 7. Viajar a un año o a un mes ----------
+  function sincronizar(a, m) {
+    // Municipios, panel y calendario muestran el mismo periodo (el mapa de calor lo anima el viaje)
+    window.VIAJE_ACTIVO = true;
+    selAño.value = String(A0 + a);
+    selMes.value = m ? String(m) : "";
+    CAL.marcado = m ? [a, m] : null;
+    VJ.sincronizando = true;
+    aplicarFiltros();
+    VJ.sincronizando = false;
+  }
+  function verAño(a) {
+    VJ.año = a; VJ.mes = null;
+    sincronizar(a, null);
+    animarCalor("año", a);
+    document.getElementById("viaje").classList.add("activo");
+    dibujarAños(); dibujarMeses(); mostrarInsignia();
+  }
+  function verMes(a, m) {
+    VJ.año = a; VJ.mes = m;
+    sincronizar(a, m);
+    animarCalor("mes", a * 12 + m - 1);
+    document.getElementById("viaje").classList.add("activo");
+    dibujarAños(); dibujarMeses(); mostrarInsignia();
+  }
+  function salirViaje() {
+    pausarViaje();
+    window.VIAJE_ACTIVO = false;
+    VJ.año = null; VJ.mes = null;
+    if (VJ.actual) VJ.actual.fill(0);
+    selAño.value = ""; selMes.value = ""; CAL.marcado = null;
+    document.getElementById("viaje").classList.remove("activo");
+    aplicarFiltros();                       // el mapa vuelve a "todos los años"
+    dibujarAños(); dibujarMeses(); mostrarInsignia();
+  }
+
+  // ---------- 8. Reproducir ----------
+  function pausarViaje() {
+    clearInterval(VJ.timer); VJ.timer = null; VJ.modo = null;
+    document.getElementById("viaje").classList.remove("reproduciendo");
+    document.getElementById("viajeTodo").innerHTML = "▶ Ver los 25 años";
+    if (VJ.año !== null) dibujarMeses();
+  }
+  function reproducirAño() {
+    if (VJ.modo === "año") { pausarViaje(); return; }
+    pausarViaje();
+    const a = VJ.año, ultimo = a === NA - 1 ? VJ.ultimoMes : 12;
+    let m = VJ.mes && VJ.mes < ultimo ? VJ.mes : 0;
+    VJ.modo = "año";
+    document.getElementById("viaje").classList.add("reproduciendo");
+    document.documentElement.style.setProperty("--paso-viaje", VJ.PASO_MES + "ms");
+    const avanzar = () => {
+      m++;
+      if (m > ultimo) { pausarViaje(); return; }
+      verMes(a, m);
+    };
+    avanzar();
+    VJ.timer = setInterval(avanzar, VJ.PASO_MES);
+    dibujarMeses();
+  }
+  function reproducirTodo() {
+    if (VJ.modo === "todo") { pausarViaje(); return; }
+    pausarViaje();
+    let a = VJ.año !== null && VJ.año < NA - 1 && VJ.mes === null ? VJ.año : -1;
+    VJ.modo = "todo";
+    document.getElementById("viaje").classList.add("reproduciendo");
+    document.getElementById("viajeTodo").innerHTML = "❚❚ Pausar";
+    const avanzar = () => {
+      a++;
+      if (a > NA - 1) { pausarViaje(); return; }
+      verAño(a);
+    };
+    avanzar();
+    VJ.timer = setInterval(avanzar, VJ.PASO_AÑO);
+  }
+  document.getElementById("viajePlayAño").addEventListener("click", reproducirAño);
+  document.getElementById("viajeTodo").addEventListener("click", reproducirTodo);
+  document.getElementById("viajeSalir").addEventListener("click", salirViaje);
+  // Si cambian el periodo a mano o se van de la página del mapa, el viaje se detiene
+  [selAño, selMes].forEach(s => s.addEventListener("change", () => {
+    if (!window.VIAJE_ACTIVO) return;
+    pausarViaje();
+    window.VIAJE_ACTIVO = false; VJ.año = null; VJ.mes = null;
+    if (VJ.actual) VJ.actual.fill(0);
+    document.getElementById("viaje").classList.remove("activo");
+    aplicarFiltros(); dibujarAños(); dibujarMeses(); mostrarInsignia();
+  }));
+  window.addEventListener("hashchange", () => { if (location.hash !== "#mapa") pausarViaje(); });
+
+  // Se llama cuando cambia el lugar elegido (desde actualizarPanel)
+  function actualizarViaje() {
+    if (VJ.sincronizando) return;     // el viaje ya se redibuja solo
+    dibujarAños();
+    if (VJ.año !== null) { dibujarMeses(); mostrarInsignia(); }
+  }
+  actualizarViaje();
+  </script>
+  <script>
+  // =====================================================================
+  // NAVEGACIÓN ENTRE PÁGINAS
+  // Un solo archivo, pero se muestra una sección a la vez (index.html#mapa, #calendario…)
+  // =====================================================================
+  // Íconos de línea dorados para las tarjetas (<span class="card-icono" data-icono="...">)
+  const ICONOS = {
+    mapa: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
+    pin: '<path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>',
+    calendario: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    fuego: '<path d="M12 22c4 0 7-3 7-7 0-4-3-6-4-10-2 2-3 4-3 6-1-1-2-2-2-4-3 2-5 5-5 8 0 4 3 7 7 7z"/>',
+    barras: '<path d="M5 20V11M11 20V5M17 20v-7M2 20h20"/>',
+    reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    alerta: '<path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/>',
+    lista: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    tendencia: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+    libro: '<path d="M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h7z"/>',
+  };
+  document.querySelectorAll("[data-icono]").forEach(el => {
+    el.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONOS[el.dataset.icono] || ""}</svg>`;
+  });
+  // Fecha de los datos en el pie de página
+  document.getElementById("pieFecha").textContent =
+    `${Number(DATOS_MAPA.meta.ultimaFecha.slice(8, 10))} de ${MESES[Number(DATOS_MAPA.meta.ultimaFecha.slice(5, 7)) - 1].toLowerCase()} de ${DATOS_MAPA.meta.ultimaFecha.slice(0, 4)}`;
+
+  const PAGINAS = [
+    { id: "inicio", nombre: "Inicio" },
+    { id: "mapa", nombre: "Mapa" },
+    { id: "calendario", nombre: "Calendario" },
+    { id: "alerta", nombre: "Alerta" },
+    { id: "nosotros", nombre: "Nosotros" },
+  ];
+  let mapaYaSeMostro = false;
+  let calorAgregado = false;
+
+  // Botones "anterior / inicio / siguiente" al final de cada página
+  PAGINAS.forEach((p, i) => {
+    const anterior = PAGINAS[i - 1], siguiente = PAGINAS[i + 1];
+    const div = document.createElement("div");
+    div.className = "nav-paginas";
+    div.innerHTML =
+      (anterior ? `<a class="boton-pagina anterior" href="#${anterior.id}"><span class="flecha">←</span> ${anterior.nombre}</a>` : "<span></span>") +
+      (i > 1 ? `<a class="boton-pagina" href="#inicio">🏠 Volver al inicio</a>` : "") +   // en "Mapa" ya está "← Inicio"
+      (siguiente ? `<a class="boton-pagina siguiente" href="#${siguiente.id}">${siguiente.nombre} <span class="flecha">→</span></a>` : "<span></span>");
+    const seccion = document.getElementById(p.id);
+    (p.id === "inicio" ? seccion.querySelector(".portada-texto") : (seccion.querySelector(".contenido") || seccion)).appendChild(div);
+  });
+
+  // Mueve la línea naranja del menú debajo de la página activa
+  function moverIndicador() {
+    const activo = document.querySelector("nav ul a.activa");
+    const linea = document.querySelector("nav ul .indicador");
+    if (!linea) return;
+    if (!activo) { linea.style.width = "0"; return; }
+    linea.style.left = (activo.offsetLeft - 14) + "px";      // la píldora sobresale 14 px a cada lado
+    linea.style.width = (activo.offsetWidth + 28) + "px";
+  }
+
+  function mostrarPagina() {
+    let id = location.hash.slice(1) || "inicio";
+    if (!PAGINAS.some(p => p.id === id)) id = "inicio";
+
+    document.querySelectorAll(".pagina").forEach(s => s.classList.toggle("visible", s.id === id));
+    document.querySelectorAll("nav ul a").forEach(a => a.classList.toggle("activa", a.getAttribute("href") === "#" + id));
+    moverIndicador();
+    window.scrollTo({ top: 0, behavior: "instant" });
+    document.title = `FLARE | ${PAGINAS.find(p => p.id === id).nombre}`;
+
+    // El mapa y los gráficos se crearon escondidos: hay que avisarles su tamaño real
+    requestAnimationFrame(() => {
+      if (id === "mapa") {
+        mapa.invalidateSize();
+        if (!mapaYaSeMostro && !seleccion) mapa.setView(CONFIG.centro, CONFIG.zoom);
+        mapaYaSeMostro = true;
+        // Primera vez que el mapa es visible: ahora sí se puede agregar el mapa de calor
+        if (!calorAgregado) {
+          calorAgregado = true;
+          capaCalor.addTo(mapa);
+          ajustarRadioCalor();
+          leyenda.dibujar();
+        }
+      }
+      if (id === "calendario") { graficoCal.resize(); graficoMeses.resize(); }
+      if (id === "alerta") graficoAcum.resize();
+    });
+  }
+
+  // Etiqueta "📍 Viendo: ..." en Calendario y Alerta
+  function actualizarChips() {
+    const u = seleccion ? UNIDADES[seleccion.tipo].lista[seleccion.id] : null;
+    const texto = u ? (seleccion.tipo === "mun" && u.depto ? `${u.nombre}, ${u.depto}` : u.nombre) : "Toda Colombia";
+    document.querySelectorAll("[data-chip]").forEach(chip => {
+      chip.innerHTML = `📍 Viendo: <b>${texto}</b> <a href="#mapa">Cambiar en el mapa</a>` +
+        (u ? `<button type="button" data-ver-todo>Ver toda Colombia</button>` : "");
+      const boton = chip.querySelector("[data-ver-todo]");
+      if (boton) boton.onclick = () => {
+        seleccion = null;
+        mapaYaSeMostro = false;          // al volver al mapa, se centra en Colombia
+        refrescarEstilos();
+        actualizarPanel();
+      };
+    });
+  }
+
+  window.addEventListener("hashchange", mostrarPagina);
+  window.addEventListener("resize", moverIndicador);
+  actualizarChips();
+  mostrarPagina();
+  </script>
+
+  <script>
+  // =====================================================================
+  // EFECTOS "LIQUID GLASS": brillo que sigue al cursor y apariciones suaves
+  // =====================================================================
+
+  // 1. Brillo que sigue al cursor: cada tarjeta recibe la posición del mouse (--mx, --my)
+  const SELECTOR_VIDRIO = ".card, .barra-herramientas, .explicacion, .chip-lugar, .cifras-portada div";
+  document.addEventListener("pointermove", e => {
+    const el = e.target.closest && e.target.closest(SELECTOR_VIDRIO);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+    el.style.setProperty("--my", `${e.clientY - r.top}px`);
+  }, { passive: true });
+  document.addEventListener("pointerout", e => {
+    const el = e.target.closest && e.target.closest(SELECTOR_VIDRIO);
+    if (el && !el.contains(e.relatedTarget)) { el.style.removeProperty("--mx"); el.style.removeProperty("--my"); }
+  });
+
+  // 2. Apariciones: las piezas de cada página entran una tras otra (y al hacer scroll)
+  const PIEZAS = [
+    ".portada-texto > .etiqueta", ".portada-texto > h1", ".portada-texto > p", ".portada-texto > .botones",
+    ".cifras-portada > div", ".cal-kpis > .card", ".encabezado-pagina", ".barra-herramientas", ".explicacion",
+    ".mapa-y-panel > *", "#mapa .viaje", ".cal-rejilla > .card", ".cal-lateral > .card", ".alerta-rejilla > .card",
+    "#alerta .contenido > .card", ".equipo > .card", "#nosotros .contenido > .card", ".nav-paginas",
+  ].join(", ");
+  const observador = new IntersectionObserver(entradas => {
+    let orden = 0;
+    entradas.forEach(en => {
+      if (!en.isIntersecting) return;
+      en.target.style.setProperty("--retraso", `${Math.min(orden++, 8) * 80}ms`);
+      en.target.classList.add("revelado");
+      observador.unobserve(en.target);
+      const el = en.target, espera = 1000 + Math.min(orden, 8) * 80;
+      setTimeout(() => el.classList.remove("revelar", "revelado"), espera);
+    });
+  }, { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
+
+  function revelarPagina() {
+    const pagina = document.querySelector(".pagina.visible");
+    if (!pagina) return;
+    pagina.querySelectorAll(PIEZAS).forEach(el => {
+      el.classList.add("revelar");
+      el.classList.remove("revelado");
+      observador.observe(el);
+    });
+  }
+  window.addEventListener("hashchange", () => requestAnimationFrame(revelarPagina));
+  revelarPagina();
+  </script>
+</body>
+</html>
