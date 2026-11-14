@@ -1,0 +1,16 @@
+# Datos crudos de la NASA: son muy pesados y la página no los necesita
+modis/
+viirs/
+DL_FIRE_*
+*.zip
+*.csv
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
