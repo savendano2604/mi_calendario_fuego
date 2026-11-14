@@ -80,13 +80,13 @@ const MOTOR = (() => {
   }
 
   // ---------- 2. Celdas-día con fuego (una por día y cuadro de 0.1°) ----------
-  function celdasDia(s, fijasExtra, soloTerra = false, desde = -Infinity) {
+  function celdasDia(s, fijasExtra, soloTerra = false, desde = -Infinity, hasta = Infinity) {
     const fijas = fijasExtra ? new Set([...s.fijas, ...fijasExtra]) : s.fijas;
     const vistos = new Set(), out = { dia: [], cx: [], cy: [] };
     for (let i = 0; i < s.dia.length; i++) {
       if (soloTerra && !s.terra[i]) continue;
       const dia = s.dia[i];
-      if (dia < D_INICIO || dia <= desde) continue;
+      if (dia < D_INICIO || dia <= desde || dia >= hasta) continue;
       const lat = s.lat[i], lon = s.lon[i];
       if (fijas.size && fijas.has(claveFija(lat, lon))) continue;
       const cx = Math.floor(lon / CELDA), cy = Math.floor(lat / CELDA);
@@ -227,7 +227,8 @@ const MOTOR = (() => {
   }
 
   // ---------- 7. Modo ACTUALIZAR (agregar días nuevos de VIIRS) ----------
-  function actualizar(alm, base, avisar) {
+  function actualizar(alm, base, avisar, hoy = Infinity) {
+    // El día de hoy (UTC) nunca se agrega: la NASA lo sigue publicando durante el día y quedaría incompleto
     if (!base) throw new Error("No hay datos actuales para actualizar.");
     if (!alm.viirs.dia.length && !alm.n20.dia.length)
       throw new Error("Para actualizar se necesitan archivos de VIIRS (Suomi NPP o NOAA-20). Los datos recientes de FLARE vienen de VIIRS.");
@@ -235,13 +236,14 @@ const MOTOR = (() => {
     const fijasBase = (base.meta.fijas || []).map(([a, b]) => a + "," + b);
     avisar("contar", "Buscando días nuevos después del " + base.meta.ultimaFecha + "…");
     const vacio = { dia: [], cx: [], cy: [] };
-    const v = alm.viirs.dia.length ? celdasDia(alm.viirs, fijasBase, false, Math.max(ultimoBase, D_VIIRS - 1)) : vacio;
+    const v = alm.viirs.dia.length ? celdasDia(alm.viirs, fijasBase, false, Math.max(ultimoBase, D_VIIRS - 1), hoy) : vacio;
     // NOAA-20 solo para los días después del último día de Suomi NPP (en los datos o en los archivos subidos)
     const finSnpp = Math.max(ultimoBase, alm.viirs.dia.length ? alm.viirs.max : -Infinity, D_VIIRS - 1);
-    const n = alm.n20.dia.length ? celdasDia(alm.n20, [...fijasBase, ...alm.viirs.fijas], false, finSnpp) : vacio;
+    const n = alm.n20.dia.length ? celdasDia(alm.n20, [...fijasBase, ...alm.viirs.fijas], false, finSnpp, hoy) : vacio;
+    const hoyIgnorado = [alm.viirs, alm.n20].some(x => x.dia.length && x.max >= hoy) ? textoDe(hoy) : null;
     if (!v.dia.length && !n.dia.length) {
       const hastaArchivo = Math.max(alm.viirs.dia.length ? alm.viirs.max : -Infinity, alm.n20.dia.length ? alm.n20.max : -Infinity);
-      return { datos: null, resumen: { modo: "actualizar", sinNovedades: true, ultimaFecha: base.meta.ultimaFecha, hastaArchivo: textoDe(hastaArchivo) } };
+      return { datos: null, resumen: { modo: "actualizar", sinNovedades: true, ultimaFecha: base.meta.ultimaFecha, hastaArchivo: textoDe(hastaArchivo), hoyIgnorado } };
     }
     avisar("agrupar", "Agregando los días nuevos al mapa…");
     // Copiar los datos actuales a una estructura editable
@@ -277,14 +279,14 @@ const MOTOR = (() => {
       resumen: {
         modo: "actualizar", anterior: base.meta.ultimaFecha, desde: textoDe(primero), hasta: textoDe(ultimo),
         diasNuevos: Math.round(ultimo - Math.max(ultimoBase, primero - 1)), nuevosFocos,
-        celdasDiaN20: n.dia.length, desdeN20: n.dia.length ? textoDe(Math.min(...n.dia)) : null,
+        celdasDiaN20: n.dia.length, desdeN20: n.dia.length ? textoDe(Math.min(...n.dia)) : null, hoyIgnorado,
         hueco: primero - ultimoBase > 1 ? { desde: textoDe(ultimoBase + 1), hasta: textoDe(primero - 1) } : null,
       },
     };
   }
 
   // ---------- 8. Función principal ----------
-  async function procesar({ archivos, base, modo = "auto", progreso = () => {} }) {
+  async function procesar({ archivos, base, modo = "auto", progreso = () => {}, hoy = diaDe(new Date().toISOString().slice(0, 10)) }) {
     const nuevo = () => ({ dia: [], lat: [], lon: [], terra: [], fijas: new Set(), min: Infinity, max: -Infinity });
     const alm = { modis: nuevo(), viirs: nuevo(), n20: nuevo(), otros: 0, malas: 0 };
     let filas = 0;
@@ -301,7 +303,7 @@ const MOTOR = (() => {
     if (elegido === "completo" && !puedeCompleto)
       throw new Error("Para procesar desde cero se necesitan los históricos completos: MODIS desde 2001 y VIIRS desde 2012 (al menos hasta 2021). Con archivos recientes usa \"Actualizar con días nuevos\".");
     const avisar = (fase, texto) => progreso({ fase, texto });
-    const r = elegido === "completo" ? completo(alm, avisar) : actualizar(alm, base, avisar);
+    const r = elegido === "completo" ? completo(alm, avisar) : actualizar(alm, base, avisar, hoy);
     r.resumen.filas = filas;
     r.resumen.filasModis = alm.modis.dia.length;
     r.resumen.filasViirs = alm.viirs.dia.length;

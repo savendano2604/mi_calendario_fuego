@@ -233,7 +233,9 @@
       "Corporaciones ambientales:": "Environmental agencies:", "Cualquier persona:": "Anyone:", "buscar su municipio y entender qué está pasando.": "search their municipality and understand what is happening.",
       "Nuestro método en 3 pasos": "Our method in 3 steps", "Cómo convertimos dos satélites distintos en un solo registro comparable": "How we turn two different satellites into one comparable record",
       "Contamos focos, no puntos.": "We count hotspots, not points.", "Seguimos sin cortes.": "No gaps.",
-      "Nuestro método en 4 pasos": "Our method in 4 steps", "Satélite": "Satellite",
+      "Nuestro método en 4 pasos": "Our method in 4 steps", "Satélite": "Satellite", "FLARE ya está al día.": "FLARE is up to date.", "Mañana habrá un día nuevo para agregar.": "There will be a new day to add tomorrow.",
+      ". Pide hasta ayer: el día de hoy la NASA todavía lo está publicando.": ". Request up to yesterday: NASA is still publishing today.",
+      "no se agregó porque es hoy y la NASA todavía lo está publicando: súbelo mañana.": "was not added because it is today and NASA is still publishing it: upload it tomorrow.",
       "Suomi NPP dejó de enviar datos el 2 de noviembre de 2026. Comparamos su reemplazo, NOAA-20, en 2018–2026: ve apenas un 2 % más (r = 0,998). FLARE continúa con NOAA-20 ajustado, con 1,3 % de error en la validación.":
         "Suomi NPP stopped sending data on November 2, 2026. We compared its replacement, NOAA-20, over 2018–2026: it sees only 2 % more (r = 0.998). FLARE continues with adjusted NOAA-20, with a 1.3 % validation error.",
       "🛰️ Suomi NPP dejó de enviar datos el 2 de noviembre de 2026. FLARE continúa con": "🛰️ Suomi NPP stopped sending data on November 2, 2026. FLARE continues with",
@@ -371,6 +373,7 @@
       R("✓ Listo en (.+) s\\. Revisa el resumen y presiona \"Aplicar\"\\.", (_, s) => `✓ Done in ${s} s. Check the summary and press "Apply".`),
       R("⚠️ El archivo \"(.+)\" no parece de NASA FIRMS \\(falta la columna \"(.+)\"\\)\\.", (_, a, c) => `⚠️ The file "${a}" doesn't look like NASA FIRMS data (column "${c}" is missing).`),
       R("Se descartaron (.+) filas incompletas\\.", (_, n) => `${n} incomplete rows were discarded.`),
+      R("El (.+) no se agregó porque es hoy y la NASA todavía lo está publicando\\. Súbelo mañana para que quede completo\\.", (_, f) => `${T(f)} was not added because it is today and NASA is still publishing it. Upload it tomorrow so it is complete.`),
       R("Se ignoraron (.+) filas de otros satélites \\(NOAA-21 u otros\\)\\. FLARE usa MODIS, VIIRS S-NPP y VIIRS NOAA-20 para que el método sea comparable\\.", (_, n) => `${n} rows from other satellites (NOAA-21 or others) were ignored. FLARE uses MODIS, VIIRS S-NPP and VIIRS NOAA-20 so the method is comparable.`),
       R("Subiendo datos hasta el (.+)…", (_, f) => `Uploading data through ${T(f)}…`),
       R("(\\d+) de " + M + " de (\\d{4})", (_, d, m, a) => `${mes(m)} ${d}, ${a}`),
@@ -3802,6 +3805,8 @@
   const fechaLarga = txt => { const [y, m, d] = txt.split("-").map(Number); return `${d} de ${MESES[m - 1].toLowerCase()} de ${y}`; };
   const sumarDia = (txt, n) => new Date(Date.UTC(+txt.slice(0, 4), +txt.slice(5, 7) - 1, +txt.slice(8, 10) + n)).toISOString().slice(0, 10);
   const hoyTexto = () => new Date().toLocaleDateString("en-CA");
+  // Último día completo en la NASA (fechas en UTC): ayer. El día de hoy todavía se está publicando.
+  const ayerTexto = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
 
   // ---------- 1. Estado de los datos actuales ----------
   function dibujarEstado() {
@@ -3827,7 +3832,9 @@
       Entra a <a href="https://firms.modaps.eosdis.nasa.gov/download/" target="_blank" rel="noopener">NASA FIRMS → Archive Download</a>,
       elige <b>Country → Colombia</b> y formato <b>CSV</b>. Te llega un correo con un ZIP.
       <div class="receta">
-        <div>🔄 <b>Para agregar días nuevos</b> (lo más común): fuente <b>VIIRS NOAA-20</b>, fechas <b>${desde}</b> → <b>${hoyTexto()}</b>.</div>
+        ${desde > ayerTexto()
+          ? `<div>✅ <b>FLARE ya está al día.</b> Mañana habrá un día nuevo para agregar.</div>`
+          : `<div>🔄 <b>Para agregar días nuevos</b> (lo más común): fuente <b>VIIRS NOAA-20</b>, fechas <b>${desde}</b> → <b>${ayerTexto()}</b>. Pide hasta ayer: el día de hoy la NASA todavía lo está publicando.</div>`}
         <div>🧮 <b>Para procesar todo desde cero</b>: <b>MODIS C6.1</b> de 2001-01-01 a hoy, <b>VIIRS S-NPP</b> de 2012-01-20 a 2026-11-02 y <b>VIIRS NOAA-20</b> de 2018-01-01 a hoy (3 ZIP).</div>
         <div>🛰️ Suomi NPP dejó de enviar datos el 2 de noviembre de 2026. FLARE continúa con <b>NOAA-20</b> y lo ajusta solo a la misma escala (NOAA-20 ve un 2 % más).</div>
       </div>`;
@@ -3920,7 +3927,7 @@
             }
           }
           if (!lista.length) throw new Error("No encontré archivos CSV dentro de lo que subiste.");
-          const r = await MOTOR.procesar({ archivos: lista, base, modo, progreso: p => postMessage({ tipo: "progreso", ...p }) });
+          const r = await MOTOR.procesar({ archivos: lista, base, modo, hoy: MOTOR.diaDe(e.data.hoy), progreso: p => postMessage({ tipo: "progreso", ...p }) });
           postMessage({ tipo: "listo", resultado: r });
         } catch (err) {
           postMessage({ tipo: "error", mensaje: err && err.message ? err.message : String(err) });
@@ -3969,7 +3976,7 @@
       }
     };
     w.onerror = e => { texto.className = "texto-proceso error"; texto.textContent = "⚠️ Error inesperado: " + (e.message || "revisa los archivos"); DT.trabajando = false; tarjeta.classList.remove("trabajando"); };
-    w.postMessage({ archivos: DT.archivos, base: { meta: DATOS_MAPA.meta, celdas: DATOS_MAPA.celdas }, modo: DT.modo });
+    w.postMessage({ archivos: DT.archivos, base: { meta: DATOS_MAPA.meta, celdas: DATOS_MAPA.celdas }, modo: DT.modo, hoy: new Date().toISOString().slice(0, 10) });
   });
 
   // ---------- 5. Resultado ----------
@@ -3979,7 +3986,8 @@
     marcarFase("listo");
     if (res.sinNovedades) {
       texto.className = "texto-proceso";
-      texto.innerHTML = `ℹ️ No hay días nuevos: los archivos llegan hasta el <b>${fechaLarga(res.hastaArchivo)}</b> y FLARE ya tiene datos hasta el <b>${fechaLarga(res.ultimaFecha)}</b>. Descarga de la NASA las fechas que indica el paso 1.`;
+      texto.innerHTML = `ℹ️ No hay días nuevos: los archivos llegan hasta el <b>${fechaLarga(res.hastaArchivo)}</b> y FLARE ya tiene datos hasta el <b>${fechaLarga(res.ultimaFecha)}</b>.` +
+        (res.hoyIgnorado ? ` El <b>${fechaLarga(res.hoyIgnorado)}</b> no se agregó porque es hoy y la NASA todavía lo está publicando: súbelo mañana.` : ` Descarga de la NASA las fechas que indica el paso 1.`);
       return;
     }
     texto.className = "texto-proceso bien";
@@ -3988,6 +3996,7 @@
     if (res.hueco) avisos.push(`Faltan días entre el ${fechaLarga(res.hueco.desde)} y el ${fechaLarga(res.hueco.hasta)}: descárgalos de la NASA para no dejar un vacío.`);
     if (res.otros) avisos.push(`Se ignoraron ${fmt(res.otros)} filas de otros satélites (NOAA-21 u otros). FLARE usa MODIS, VIIRS S-NPP y VIIRS NOAA-20 para que el método sea comparable.`);
     if (res.malas) avisos.push(`Se descartaron ${fmt(res.malas)} filas incompletas.`);
+    if (res.hoyIgnorado) avisos.push(`El ${fechaLarga(res.hoyIgnorado)} no se agregó porque es hoy y la NASA todavía lo está publicando. Súbelo mañana para que quede completo.`);
     const cifras = res.modo === "completo"
       ? [["Filas leídas", fmt(res.filas)], ["Periodo", `${res.desde.slice(0, 4)} – ${res.hasta.slice(0, 4)}`], ["Hasta", fechaLarga(res.hasta)],
          ["VIIRS / MODIS", res.factorNacional.toFixed(2).replace(".", ",") + "×"], ["Terra+Aqua / Terra", res.factorTerra.toFixed(2).replace(".", ",") + "×"],
@@ -4337,13 +4346,13 @@ const MOTOR = (() => {
   }
 
   // ---------- 2. Celdas-día con fuego (una por día y cuadro de 0.1°) ----------
-  function celdasDia(s, fijasExtra, soloTerra = false, desde = -Infinity) {
+  function celdasDia(s, fijasExtra, soloTerra = false, desde = -Infinity, hasta = Infinity) {
     const fijas = fijasExtra ? new Set([...s.fijas, ...fijasExtra]) : s.fijas;
     const vistos = new Set(), out = { dia: [], cx: [], cy: [] };
     for (let i = 0; i < s.dia.length; i++) {
       if (soloTerra && !s.terra[i]) continue;
       const dia = s.dia[i];
-      if (dia < D_INICIO || dia <= desde) continue;
+      if (dia < D_INICIO || dia <= desde || dia >= hasta) continue;
       const lat = s.lat[i], lon = s.lon[i];
       if (fijas.size && fijas.has(claveFija(lat, lon))) continue;
       const cx = Math.floor(lon / CELDA), cy = Math.floor(lat / CELDA);
@@ -4484,7 +4493,8 @@ const MOTOR = (() => {
   }
 
   // ---------- 7. Modo ACTUALIZAR (agregar días nuevos de VIIRS) ----------
-  function actualizar(alm, base, avisar) {
+  function actualizar(alm, base, avisar, hoy = Infinity) {
+    // El día de hoy (UTC) nunca se agrega: la NASA lo sigue publicando durante el día y quedaría incompleto
     if (!base) throw new Error("No hay datos actuales para actualizar.");
     if (!alm.viirs.dia.length && !alm.n20.dia.length)
       throw new Error("Para actualizar se necesitan archivos de VIIRS (Suomi NPP o NOAA-20). Los datos recientes de FLARE vienen de VIIRS.");
@@ -4492,13 +4502,14 @@ const MOTOR = (() => {
     const fijasBase = (base.meta.fijas || []).map(([a, b]) => a + "," + b);
     avisar("contar", "Buscando días nuevos después del " + base.meta.ultimaFecha + "…");
     const vacio = { dia: [], cx: [], cy: [] };
-    const v = alm.viirs.dia.length ? celdasDia(alm.viirs, fijasBase, false, Math.max(ultimoBase, D_VIIRS - 1)) : vacio;
+    const v = alm.viirs.dia.length ? celdasDia(alm.viirs, fijasBase, false, Math.max(ultimoBase, D_VIIRS - 1), hoy) : vacio;
     // NOAA-20 solo para los días después del último día de Suomi NPP (en los datos o en los archivos subidos)
     const finSnpp = Math.max(ultimoBase, alm.viirs.dia.length ? alm.viirs.max : -Infinity, D_VIIRS - 1);
-    const n = alm.n20.dia.length ? celdasDia(alm.n20, [...fijasBase, ...alm.viirs.fijas], false, finSnpp) : vacio;
+    const n = alm.n20.dia.length ? celdasDia(alm.n20, [...fijasBase, ...alm.viirs.fijas], false, finSnpp, hoy) : vacio;
+    const hoyIgnorado = [alm.viirs, alm.n20].some(x => x.dia.length && x.max >= hoy) ? textoDe(hoy) : null;
     if (!v.dia.length && !n.dia.length) {
       const hastaArchivo = Math.max(alm.viirs.dia.length ? alm.viirs.max : -Infinity, alm.n20.dia.length ? alm.n20.max : -Infinity);
-      return { datos: null, resumen: { modo: "actualizar", sinNovedades: true, ultimaFecha: base.meta.ultimaFecha, hastaArchivo: textoDe(hastaArchivo) } };
+      return { datos: null, resumen: { modo: "actualizar", sinNovedades: true, ultimaFecha: base.meta.ultimaFecha, hastaArchivo: textoDe(hastaArchivo), hoyIgnorado } };
     }
     avisar("agrupar", "Agregando los días nuevos al mapa…");
     // Copiar los datos actuales a una estructura editable
@@ -4534,14 +4545,14 @@ const MOTOR = (() => {
       resumen: {
         modo: "actualizar", anterior: base.meta.ultimaFecha, desde: textoDe(primero), hasta: textoDe(ultimo),
         diasNuevos: Math.round(ultimo - Math.max(ultimoBase, primero - 1)), nuevosFocos,
-        celdasDiaN20: n.dia.length, desdeN20: n.dia.length ? textoDe(Math.min(...n.dia)) : null,
+        celdasDiaN20: n.dia.length, desdeN20: n.dia.length ? textoDe(Math.min(...n.dia)) : null, hoyIgnorado,
         hueco: primero - ultimoBase > 1 ? { desde: textoDe(ultimoBase + 1), hasta: textoDe(primero - 1) } : null,
       },
     };
   }
 
   // ---------- 8. Función principal ----------
-  async function procesar({ archivos, base, modo = "auto", progreso = () => {} }) {
+  async function procesar({ archivos, base, modo = "auto", progreso = () => {}, hoy = diaDe(new Date().toISOString().slice(0, 10)) }) {
     const nuevo = () => ({ dia: [], lat: [], lon: [], terra: [], fijas: new Set(), min: Infinity, max: -Infinity });
     const alm = { modis: nuevo(), viirs: nuevo(), n20: nuevo(), otros: 0, malas: 0 };
     let filas = 0;
@@ -4558,7 +4569,7 @@ const MOTOR = (() => {
     if (elegido === "completo" && !puedeCompleto)
       throw new Error("Para procesar desde cero se necesitan los históricos completos: MODIS desde 2001 y VIIRS desde 2012 (al menos hasta 2021). Con archivos recientes usa \"Actualizar con días nuevos\".");
     const avisar = (fase, texto) => progreso({ fase, texto });
-    const r = elegido === "completo" ? completo(alm, avisar) : actualizar(alm, base, avisar);
+    const r = elegido === "completo" ? completo(alm, avisar) : actualizar(alm, base, avisar, hoy);
     r.resumen.filas = filas;
     r.resumen.filasModis = alm.modis.dia.length;
     r.resumen.filasViirs = alm.viirs.dia.length;
