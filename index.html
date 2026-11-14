@@ -143,6 +143,7 @@
       "Año con más fuego": "Year with the most fire", "en un año típico": "in a typical year", "por década (datos armonizados)": "per decade (harmonized data)",
       "Sin fuego registrado": "No fire recorded", "Sin fuego": "No fire", "sin fuego registrado": "no fire recorded",
       "muy poco fuego para medir una tendencia": "too little fire to measure a trend",
+      "ningún año llegó a 1 foco": "no year reached 1 hotspot", "casi sin fuego en todos los meses": "almost no fire in any month",
       "al año. Por eso casi todos los cuadros se ven oscuros.": "per year. That's why almost all the squares look dark.",
       "tiene muy poco fuego: en promedio": "has very little fire: on average", "menos de 1 foco": "less than 1 hotspot", "🌿": "🌿",
       "línea gris": "gray line", "línea dorada": "gold line", "armoniza": "harmonizes", "armonizar": "harmonize",
@@ -154,7 +155,7 @@
       "los datos (": "the data (", "FLARE": "FLARE",
       ". Ya armonizado, el cambio real fue de": ". Once harmonized, the real change was",
       ", con el pico en": ", peaking in", ". En esos meses ocurre el": ". Those months account for", "del fuego del año.": "of the year's fire.",
-      "⏳ La próxima temporada empieza en": "⏳ The next season starts in", "🔥 Ahora mismo estamos en temporada de quemas.": "🔥 We are in the burning season right now.",
+      "⏳ La próxima temporada empieza en": "⏳ The next season starts in", "🔥 Ahora mismo estamos en temporada de quemas.": "🔥 We are in the burning season right now.", "Ahora mismo estamos en temporada de quemas.": "We are in the burning season right now.", "🔥": "🔥",
       // Alerta
       "Alerta temprana": "Early warning", "¿Qué tan grave va este año en": "How serious is this year so far in",
       "Este año comparado con lo normal": "This year compared with normal", "Cuánto falta y qué hacer": "How long until it starts and what to do",
@@ -279,7 +280,7 @@
       R("(.+) · en curso", (_, a) => T(a) + " · in progress"),
       R("Municipio de (.+)", (_, d) => `Municipality in ${d}`),
       R("entre ([\\d.,]+) (municipios|departamentos) \\(el #1 es el que más fuego tuvo\\)", (_, n, t) => `among ${n} ${t === "municipios" ? "municipalities" : "departments"} (#1 had the most fire)`),
-      R("parecido a (.+)", (_, b) => "similar to " + T(b)),
+      R("parecido a (.+?)(?: \\(([\\d.,]+)\\))?", (_, b, n) => "similar to " + T(b) + (n ? ` (${n})` : "")),
       R("(más|menos) fuego que (.+?)(?: \\(([\\d.,]+)\\))?", (_, mm, b, n) => `${mm === "más" ? "more" : "less"} fire than ${T(b)}${n ? ` (${n})` : ""}`),
       R("un año normal", () => "a normal year"),
       R("un " + M + " normal", (_, m) => `a normal ${mes(m)}`),
@@ -2967,8 +2968,8 @@
     const clase = d => Math.abs(d) < 5 ? "" : d > 0 ? "k-mal" : "k-bien";
     const hayPeor = completos[peor] >= 0.5, hayPico = normal[pico] > 0;
     const k = [
-      { et: "Año con más fuego", val: hayPeor ? AÑOS_TXT[peor] : "—", cls: "k-oro", sub: hayPeor ? `${fmt(completos[peor])} ${Math.round(completos[peor]) === 1 ? "foco" : "focos"} en el año` : "Sin fuego registrado" },
-      { et: "Mes más fuerte", val: hayPico ? MESES[pico] : "—", cls: "", sub: hayPico ? "en un año típico" : "sin fuego registrado" },
+      { et: "Año con más fuego", val: hayPeor ? AÑOS_TXT[peor] : "—", cls: "k-oro", sub: hayPeor ? `${fmt(completos[peor])} ${Math.round(completos[peor]) === 1 ? "foco" : "focos"} en el año` : (anual.reduce((x, y) => x + y, 0) >= 0.5 ? "ningún año llegó a 1 foco" : "Sin fuego registrado") },
+      { et: "Mes más fuerte", val: hayPico && normal[pico] >= 0.05 ? MESES[pico] : "—", cls: "", sub: hayPico && normal[pico] >= 0.05 ? "en un año típico" : "casi sin fuego en todos los meses" },
       { et: "Tendencia desde 2001", val: prom >= 1 ? flecha(tend) : "—", cls: clase(tend), sub: prom >= 1 ? "por década (datos armonizados)" : "muy poco fuego para medir una tendencia" },
       { et: `${AÑOS_TXT[NA - 1]} hasta hoy`, val: promHoy >= 1 ? flecha(difHoy) : "—", cls: clase(difHoy), sub: `frente al promedio de enero a ${MESES[CAL.ultimoMes - 1].toLowerCase()}` },
     ];
