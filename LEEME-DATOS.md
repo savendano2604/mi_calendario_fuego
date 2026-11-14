@@ -13,6 +13,7 @@
   (token *fine-grained* con permiso Contents: Read and write, solo para este repositorio).
   GitHub Pages se redespliega sola en 1–2 minutos. El token nunca se guarda.
 - Los archivos de la NASA **no salen del computador**: no hay servidor.
+- **NOAA-20:** Suomi NPP dejó de enviar datos el 2 de noviembre de 2026. Los días posteriores al último día de Suomi NPP se toman de VIIRS NOAA-20 (satélite `N20`, archivos `J1V-C2`) divididos por `K_N20 = 1,021`, el factor medido con el mismo método en 2018-04-01 a 2026-10-24 (r mensual = 0,998; calibrando 2018–2022 y prediciendo 2023–2025, error nacional 1,3 %). Implementado igual en `js/motor-flare.js` y en `procesamiento/exportar_mapa.py` (4º argumento: carpeta de NOAA-20); verificado: 0 diferencias entre los dos.
 
 ## Si se cambia el método en Python
 Hay que hacer el mismo cambio en `js/motor-flare.js` y copiarlo dentro de `index.html`

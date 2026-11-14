@@ -49,6 +49,10 @@ INICIO_AQUA = "2002-07-04"
 AÑO_INICIO = 2001
 SEMANAS = 52
 SUAVIZADO = 40         # "pseudo-conteos" para encoger hacia el promedio nacional
+# NOAA-20 (VIIRS J1) continúa a Suomi NPP, que dejó de enviar datos el 2 de noviembre de 2026.
+# Con el mismo método, en 2018-04-01 a 2026-10-24 NOAA-20 ve 1,021 veces lo que ve Suomi NPP
+# (r mensual = 0,998; calibrando 2018–2022 y prediciendo 2023–2025: error nacional 1,3 %).
+K_N20 = 1.021
 rng = np.random.default_rng(42)
 FIJAS = {}             # fuentes fijas (industria, mecheros) encontradas por sensor, en claves de 0.01°
 

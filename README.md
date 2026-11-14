@@ -16,6 +16,7 @@
 1. **Contamos focos, no puntos:** cuadros de 11 × 11 km por día, para que MODIS y VIIRS midan lo mismo.
 2. **Armonizamos:** factor VIIRS/MODIS por región (2°) y mes, calibrado en 2013–2021 (≈3,5×), y corrección de los años en que solo existía Terra.
 3. **Validamos:** calibrando con 2013–2017 y prediciendo 2018–2021, el error nacional fue de **3 %** (r = 0,92).
+4. **Seguimos sin cortes:** Suomi NPP dejó de enviar datos el 2 de noviembre de 2026. Su reemplazo, **NOAA-20**, ve un 2 % más (factor 1,021; r mensual = 0,998 en 2018–2026; error de validación 1,3 %). FLARE continúa con NOAA-20 ajustado a la escala de Suomi NPP.
 
 ## Estructura
 | Carpeta / archivo | Qué es |
@@ -31,4 +32,4 @@
 Abre `index.html` con Live Server en VS Code (necesita internet para el mapa base y los gráficos).
 
 ## Fuentes
-NASA FIRMS (MODIS C6.1 y VIIRS S-NPP 375 m) · geoBoundaries · Esri · Leaflet · ECharts.
+NASA FIRMS (MODIS C6.1, VIIRS S-NPP 375 m y VIIRS NOAA-20 375 m) · geoBoundaries · Esri · Leaflet · ECharts.

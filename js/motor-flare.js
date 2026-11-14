@@ -22,6 +22,10 @@ const MOTOR = (() => {
   const redondeoPar = x => { const r = Math.round(x); return Math.abs(x % 1) === 0.5 && r % 2 !== 0 ? r - 1 : r; };
   const claveFija = (lat, lon) => redondeoPar(lat / 0.01) + "," + redondeoPar(lon / 0.01);
   const D_INICIO = diaDe("2001-01-01"), D_AQUA = diaDe("2002-07-04"), D_VIIRS = diaDe("2012-01-20");
+  // NOAA-20 (VIIRS J1) continúa a Suomi NPP, que dejó de enviar datos el 2 de noviembre de 2026.
+  // Mismo método (celdas-día de 0,1°) en 2018-04-01 a 2026-10-24: NOAA-20 ve 1,021 veces lo que ve Suomi NPP
+  // (r mensual = 0,998; calibrando 2018–2022 y prediciendo 2023–2025: error nacional 1,3 %).
+  const K_N20 = 1.021;
   const cacheFecha = new Map();
   const añoMes = dia => {
     let r = cacheFecha.get(dia);
@@ -35,7 +39,8 @@ const MOTOR = (() => {
     if (s === "TERRA" || s === "T") return "terra";
     if (s === "AQUA" || s === "A") return "aqua";
     if (["SNPP", "N", "NPP", "SUOMI NPP", "S-NPP", "SUOMI-NPP", "SUOMI_NPP"].includes(s)) return "viirs";
-    return "otro";                                         // NOAA-20, NOAA-21, Landsat… (no se usan)
+    if (["N20", "NOAA-20", "NOAA20", "NOAA 20", "J1", "JPSS-1", "JPSS1", "1"].includes(s)) return "n20";
+    return "otro";                                         // NOAA-21, Landsat… (no se usan)
   }
 
   // ---------- 1. Leer las filas de un CSV ----------
@@ -57,7 +62,7 @@ const MOTOR = (() => {
       const lat = +c[cab.latitude], lon = +c[cab.longitude], dia = diaDe(c[cab.acq_date]);
       if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(dia)) { almacen.malas++; continue; }
       if (sensor === "otro") { almacen.otros++; continue; }
-      const s = sensor === "viirs" ? almacen.viirs : almacen.modis;
+      const s = sensor === "viirs" ? almacen.viirs : sensor === "n20" ? almacen.n20 : almacen.modis;
       // Archivo científico (trae "type"): 2 = fuente fija; solo se usan fuegos de vegetación (0)
       if ("type" in cab) {
         const tipo = c[cab.type].trim();
@@ -66,7 +71,7 @@ const MOTOR = (() => {
       }
       // Confianza: MODIS ≥ 30 %, VIIRS distinto de "l" (baja)
       const conf = c[cab.confidence].trim();
-      if (sensor === "viirs") { if (conf.toLowerCase() === "l") continue; }
+      if (sensor === "viirs" || sensor === "n20") { if (conf.toLowerCase() === "l") continue; }
       else { const v = parseFloat(conf); if (!(v >= 30)) continue; }
       s.dia.push(dia); s.lat.push(lat); s.lon.push(lon); s.terra.push(sensor === "terra" ? 1 : 0);
       s.min = Math.min(s.min, dia); s.max = Math.max(s.max, dia);
@@ -196,22 +201,27 @@ const MOTOR = (() => {
     for (let i = 0; i < m.dia.length; i++) if (m.dia[i] < D_VIIRS) { pre.dia.push(m.dia[i]); pre.cx.push(m.cx[i]); pre.cy.push(m.cy[i]); }
     const pos = { dia: [], cx: [], cy: [] };
     for (let i = 0; i < v.dia.length; i++) if (v.dia[i] >= D_VIIRS) { pos.dia.push(v.dia[i]); pos.cx.push(v.cx[i]); pos.cy.push(v.cy[i]); }
+    // Después del último día de Suomi NPP se continúa con NOAA-20, ajustado a la escala de Suomi NPP
+    const n20 = alm.n20.dia.length ? celdasDia(alm.n20, [...alm.modis.fijas, ...alm.viirs.fijas], false, alm.viirs.max) : { dia: [], cx: [], cy: [] };
     const celdas = agregar([
       { cd: pre, peso: i => [factorDe(pre.cx[i], pre.cy[i], pre.dia[i], f, kterra), 1] },
       { cd: pos, peso: () => [1, 1] },
+      { cd: n20, peso: () => [1 / K_N20, 1] },
     ]);
-    const ultimo = Math.max(alm.modis.max, alm.viirs.max);
-    const fijas = [...new Set([...alm.modis.fijas, ...alm.viirs.fijas])].map(k => k.split(",").map(Number)).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+    const ultimo = Math.max(alm.modis.max, alm.viirs.max, n20.dia.length ? Math.max(...n20.dia) : -Infinity);
+    const fijas = [...new Set([...alm.modis.fijas, ...alm.viirs.fijas, ...alm.n20.fijas])].map(k => k.split(",").map(Number)).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
     const mes = f.nacional.slice(1), terra = kterra.slice(1);
     return {
       datos: {
-        meta: { añoInicio: AÑO_INICIO, añoFin: añoMes(ultimo)[0], ultimaFecha: textoDe(ultimo), celdaGrados: CELDA, fijas },
+        meta: { añoInicio: AÑO_INICIO, añoFin: añoMes(ultimo)[0], ultimaFecha: textoDe(ultimo), celdaGrados: CELDA, fijas,
+                ...(n20.dia.length ? { n20: { factor: K_N20, desde: textoDe(Math.min(...n20.dia)) } } : {}) },
         celdas: aSalida(celdas),
       },
       resumen: {
         modo: "completo", celdasDiaModis: m.dia.length, celdasDiaViirs: v.dia.length,
         factorNacional: mes.reduce((a, b) => a + b, 0) / 12, factorTerra: terra.reduce((a, b) => a + b, 0) / 12,
         factoresMes: mes, validacion: val, desde: textoDe(Math.min(alm.modis.min, alm.viirs.min)), hasta: textoDe(ultimo),
+        celdasDiaN20: n20.dia.length, desdeN20: n20.dia.length ? textoDe(Math.min(...n20.dia)) : null,
       },
     };
   }
@@ -219,13 +229,19 @@ const MOTOR = (() => {
   // ---------- 7. Modo ACTUALIZAR (agregar días nuevos de VIIRS) ----------
   function actualizar(alm, base, avisar) {
     if (!base) throw new Error("No hay datos actuales para actualizar.");
-    if (!alm.viirs.dia.length) throw new Error("Para actualizar se necesitan archivos de VIIRS (S-NPP). Los datos recientes de FLARE vienen de VIIRS.");
+    if (!alm.viirs.dia.length && !alm.n20.dia.length)
+      throw new Error("Para actualizar se necesitan archivos de VIIRS (Suomi NPP o NOAA-20). Los datos recientes de FLARE vienen de VIIRS.");
     const ultimoBase = diaDe(base.meta.ultimaFecha);
     const fijasBase = (base.meta.fijas || []).map(([a, b]) => a + "," + b);
     avisar("contar", "Buscando días nuevos después del " + base.meta.ultimaFecha + "…");
-    const v = celdasDia(alm.viirs, fijasBase, false, Math.max(ultimoBase, D_VIIRS - 1));
-    if (!v.dia.length) {
-      return { datos: null, resumen: { modo: "actualizar", sinNovedades: true, ultimaFecha: base.meta.ultimaFecha, hastaArchivo: textoDe(alm.viirs.max) } };
+    const vacio = { dia: [], cx: [], cy: [] };
+    const v = alm.viirs.dia.length ? celdasDia(alm.viirs, fijasBase, false, Math.max(ultimoBase, D_VIIRS - 1)) : vacio;
+    // NOAA-20 solo para los días después del último día de Suomi NPP (en los datos o en los archivos subidos)
+    const finSnpp = Math.max(ultimoBase, alm.viirs.dia.length ? alm.viirs.max : -Infinity, D_VIIRS - 1);
+    const n = alm.n20.dia.length ? celdasDia(alm.n20, [...fijasBase, ...alm.viirs.fijas], false, finSnpp) : vacio;
+    if (!v.dia.length && !n.dia.length) {
+      const hastaArchivo = Math.max(alm.viirs.dia.length ? alm.viirs.max : -Infinity, alm.n20.dia.length ? alm.n20.max : -Infinity);
+      return { datos: null, resumen: { modo: "actualizar", sinNovedades: true, ultimaFecha: base.meta.ultimaFecha, hastaArchivo: textoDe(hastaArchivo) } };
     }
     avisar("agrupar", "Agregando los días nuevos al mapa…");
     // Copiar los datos actuales a una estructura editable
@@ -237,26 +253,31 @@ const MOTOR = (() => {
       celdas.set(cx + "," + cy, { cx, cy, s });
     }
     let nuevosFocos = 0;
-    for (let i = 0; i < v.dia.length; i++) {
-      const [a, mes] = añoMes(v.dia[i]);
-      const kc = v.cx[i] + "," + v.cy[i];
-      let c = celdas.get(kc);
-      if (!c) { c = { cx: v.cx[i], cy: v.cy[i], s: new Map() }; celdas.set(kc, c); }
-      const km = (a - AÑO_INICIO) * 12 + mes - 1;
-      const e = c.s.get(km);
-      if (e) { e[0] += 1; e[1] += 1; } else c.s.set(km, [1, 1]);
-      nuevosFocos++;
-    }
-    const primero = Math.min(...v.dia), ultimo = Math.max(...v.dia);
-    const fijas = [...new Set([...fijasBase, ...alm.viirs.fijas])].map(k => k.split(",").map(Number)).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+    const sumar = (cd, f) => {
+      for (let i = 0; i < cd.dia.length; i++) {
+        const [a, mes] = añoMes(cd.dia[i]);
+        const kc = cd.cx[i] + "," + cd.cy[i];
+        let c = celdas.get(kc);
+        if (!c) { c = { cx: cd.cx[i], cy: cd.cy[i], s: new Map() }; celdas.set(kc, c); }
+        const km = (a - AÑO_INICIO) * 12 + mes - 1;
+        const e = c.s.get(km);
+        if (e) { e[0] += f; e[1] += 1; } else c.s.set(km, [f, 1]);
+        nuevosFocos += f;
+      }
+    };
+    sumar(v, 1);
+    sumar(n, 1 / K_N20);
+    const todos = [...v.dia, ...n.dia];
+    const primero = Math.min(...todos), ultimo = Math.max(...todos);
+    const fijas = [...new Set([...fijasBase, ...alm.viirs.fijas, ...alm.n20.fijas])].map(k => k.split(",").map(Number)).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+    const meta = { ...base.meta, añoFin: añoMes(ultimo)[0], ultimaFecha: textoDe(ultimo), fijas };
+    if (n.dia.length && !(base.meta.n20 && base.meta.n20.desde)) meta.n20 = { factor: K_N20, desde: textoDe(Math.min(...n.dia)) };
     return {
-      datos: {
-        meta: { ...base.meta, añoFin: añoMes(ultimo)[0], ultimaFecha: textoDe(ultimo), fijas },
-        celdas: aSalida(celdas),
-      },
+      datos: { meta, celdas: aSalida(celdas) },
       resumen: {
         modo: "actualizar", anterior: base.meta.ultimaFecha, desde: textoDe(primero), hasta: textoDe(ultimo),
         diasNuevos: Math.round(ultimo - Math.max(ultimoBase, primero - 1)), nuevosFocos,
+        celdasDiaN20: n.dia.length, desdeN20: n.dia.length ? textoDe(Math.min(...n.dia)) : null,
         hueco: primero - ultimoBase > 1 ? { desde: textoDe(ultimoBase + 1), hasta: textoDe(primero - 1) } : null,
       },
     };
@@ -265,7 +286,7 @@ const MOTOR = (() => {
   // ---------- 8. Función principal ----------
   async function procesar({ archivos, base, modo = "auto", progreso = () => {} }) {
     const nuevo = () => ({ dia: [], lat: [], lon: [], terra: [], fijas: new Set(), min: Infinity, max: -Infinity });
-    const alm = { modis: nuevo(), viirs: nuevo(), otros: 0, malas: 0 };
+    const alm = { modis: nuevo(), viirs: nuevo(), n20: nuevo(), otros: 0, malas: 0 };
     let filas = 0;
     for (let i = 0; i < archivos.length; i++) {
       const a = archivos[i];
@@ -284,6 +305,7 @@ const MOTOR = (() => {
     r.resumen.filas = filas;
     r.resumen.filasModis = alm.modis.dia.length;
     r.resumen.filasViirs = alm.viirs.dia.length;
+    r.resumen.filasN20 = alm.n20.dia.length;
     r.resumen.otros = alm.otros;
     r.resumen.malas = alm.malas;
     progreso({ fase: "listo", texto: "¡Listo!" });
