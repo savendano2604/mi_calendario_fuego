@@ -141,7 +141,10 @@
       "No se detectó fuego este año. 🌿": "No fire was detected this year. 🌿", "Año típico": "Typical year", "Sin armonizar": "Not harmonized",
       "Armonizado (FLARE)": "Harmonized (FLARE)", "Rango normal": "Normal range",
       "Año con más fuego": "Year with the most fire", "en un año típico": "in a typical year", "por década (datos armonizados)": "per decade (harmonized data)",
-      "Sin fuego registrado": "No fire recorded", "Sin fuego": "No fire",
+      "Sin fuego registrado": "No fire recorded", "Sin fuego": "No fire", "sin fuego registrado": "no fire recorded",
+      "muy poco fuego para medir una tendencia": "too little fire to measure a trend",
+      "al año. Por eso casi todos los cuadros se ven oscuros.": "per year. That's why almost all the squares look dark.",
+      "tiene muy poco fuego: en promedio": "has very little fire: on average", "menos de 1 foco": "less than 1 hotspot", "🌿": "🌿",
       "línea gris": "gray line", "línea dorada": "gold line", "armoniza": "harmonizes", "armonizar": "harmonize",
       "Todo el calendario usa datos armonizados.": "The whole calendar uses harmonized data.",
       "). Si solo juntáramos los datos (": "). If we simply put the data together (",
@@ -371,6 +374,9 @@
       R("La franja dorada es lo que pasa en (\\d+) de cada (\\d+) años\\. Si la línea roja \\(este año\\) se sale por encima, es un año peligroso\\.", (_, a, b) => `The gold band is what happens in ${a} out of ${b} years. If the red line (this year) goes above it, it's a dangerous year.`),
       R("Focos del (\\d+) de enero a hoy, frente a la misma fecha de otros años", (_, d) => `Hotspots from January ${d} to today, vs. the same date in other years`),
       R("Nombre (\\d+)", (_, n) => `Name ${n}`),
+      R(N + " foco", (_, n) => `${n} hotspot`),
+      R(": aquí casi no se ha detectado fuego desde (\\d+)\\.", (_, a) => `: almost no fire has been detected here since ${a}.`),
+      R(N + " foco en el año", (_, n) => `${n} hotspot in the year`),
       R("Puesto (\\d+) de ([\\d.,]+) · (.+) del país", (_, a, b, c) => `Rank ${a} of ${b} · ${c.replace("menos del 1 %", "less than 1 %")} of the country`),
       R("(\\d+) de (\\d+)", (_, a, b) => `${a} of ${b}`),
       // Generales al final (son las más amplias)
@@ -1221,6 +1227,9 @@
     .cal-tip.visible { opacity: 1; transform: none; }
     .cal-tip .t-mal { color: #ff8c6b; } .cal-tip .t-bien { color: #6fd39a; } .cal-tip .t-pista { opacity: .6; font-size: 11.5px; }
 
+    .cal-aviso { font-size: 13.5px; line-height: 1.5; color: #d6d3cc; margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: rgba(60,207,122,.07); border: 1px solid rgba(60,207,122,.28); }
+    .cal-aviso b { color: var(--blanco); }
+
     /* Tarjeta de lo seleccionado */
     .da-año small { font-size: 22px; color: var(--gris); font-weight: 700; letter-spacing: -0.02em; }
     .da-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 6px; }
@@ -1682,6 +1691,7 @@
             <span class="card-icono" data-icono="calendario"></span>
             <div><h3>Calendario mes a mes</h3><p>Filas: años · columnas: meses · a la derecha, el total de cada año</p></div>
           </div>
+          <p class="cal-aviso" id="calAviso" hidden></p>
           <div class="cal-tabla" id="calTabla"></div>
           <div class="cal-leyenda" id="calLeyenda"></div>
         </div>
@@ -2708,7 +2718,8 @@
   // Niveles de fuego: 20 % de meses con menos fuego = "Muy poco" … 5 % con más = "Extremo"
   function calcularNiveles(arm) {
     const hist = Array.from(arm).filter(v => v > 0);
-    const q = [0.2, 0.4, 0.6, 0.8, 0.95].map(p => Math.max(1, Math.round(percentil(hist, p))));
+    const MINIMO = [2, 5, 10, 20, 40];      // un mes con 2 focos nunca debe verse "medio" o "alto"
+    const q = [0.2, 0.4, 0.6, 0.8, 0.95].map((p, i) => Math.max(MINIMO[i], Math.round(percentil(hist, p))));
     for (let i = 1; i < q.length; i++) if (q[i] <= q[i - 1]) q[i] = q[i - 1] + 1;   // cortes siempre crecientes
     CAL.niveles = COLORES_NIVEL.map((color, i) => ({
       min: i === 0 ? undefined : q[i - 1], max: i === q.length ? undefined : q[i], color, nombre: NOMBRES_NIVEL[i],
@@ -2751,6 +2762,12 @@
         <span class="ct-total">${abrev(total)}</span></div>`;
     }
     $c("calTabla").innerHTML = html;
+    const promAño = Array.from({ length: NA - 1 }, (_, a) => sumaAño(s, a)).reduce((x, y) => x + y, 0) / (NA - 1);
+    const aviso = $c("calAviso");
+    aviso.hidden = promAño >= 12;
+    if (promAño < 12) aviso.innerHTML = promAño < 0.5
+      ? `🌿 <b>${$c("calLugar").textContent}</b>: aquí casi no se ha detectado fuego desde ${A0}.`
+      : `🌿 <b>${$c("calLugar").textContent}</b> tiene muy poco fuego: en promedio <b>${promAño < 1 ? "menos de 1 foco" : fmt(promAño) + (Math.round(promAño) === 1 ? " foco" : " focos")}</b> al año. Por eso casi todos los cuadros se ven oscuros.`;
 
     $c("calLeyenda").innerHTML = anomalia
       ? `<b>Comparado con el mismo mes en un año normal:</b>` + COLORES_COMP.map((c, i) => `<span><i style="--c:${c}"></i>${NOMBRES_COMP[i]}</span>`).join("") + `<span><i class="vacia"></i>Sin datos aún</span>`
@@ -2948,10 +2965,11 @@
     const difHoy = promHoy ? (hasta(NA - 1) / promHoy - 1) * 100 : 0;
     const flecha = d => Math.abs(d) < 5 ? "≈ 0 %" : `${d > 0 ? "▲" : "▼"} ${Math.abs(Math.round(d))} %`;
     const clase = d => Math.abs(d) < 5 ? "" : d > 0 ? "k-mal" : "k-bien";
+    const hayPeor = completos[peor] >= 0.5, hayPico = normal[pico] > 0;
     const k = [
-      { et: "Año con más fuego", val: prom >= 1 ? AÑOS_TXT[peor] : "—", cls: "k-oro", sub: prom >= 1 ? `${fmt(completos[peor])} focos en el año` : "Sin fuego registrado" },
-      { et: "Mes más fuerte", val: prom >= 1 ? MESES[pico] : "—", cls: "", sub: "en un año típico" },
-      { et: "Tendencia desde 2001", val: prom >= 1 ? flecha(tend) : "—", cls: clase(tend), sub: "por década (datos armonizados)" },
+      { et: "Año con más fuego", val: hayPeor ? AÑOS_TXT[peor] : "—", cls: "k-oro", sub: hayPeor ? `${fmt(completos[peor])} ${Math.round(completos[peor]) === 1 ? "foco" : "focos"} en el año` : "Sin fuego registrado" },
+      { et: "Mes más fuerte", val: hayPico ? MESES[pico] : "—", cls: "", sub: hayPico ? "en un año típico" : "sin fuego registrado" },
+      { et: "Tendencia desde 2001", val: prom >= 1 ? flecha(tend) : "—", cls: clase(tend), sub: prom >= 1 ? "por década (datos armonizados)" : "muy poco fuego para medir una tendencia" },
       { et: `${AÑOS_TXT[NA - 1]} hasta hoy`, val: promHoy >= 1 ? flecha(difHoy) : "—", cls: clase(difHoy), sub: `frente al promedio de enero a ${MESES[CAL.ultimoMes - 1].toLowerCase()}` },
     ];
     document.getElementById("calKpis").innerHTML = k.map(x =>
