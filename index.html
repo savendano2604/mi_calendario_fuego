@@ -1509,7 +1509,15 @@
     .acciones-github { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     .acciones-github .boton { border: 0; cursor: pointer; font-family: inherit; }
     .acciones-github .boton:disabled, .acciones .boton:disabled { opacity: .5; cursor: wait; }
-    @media (max-width: 1000px) { .datos-rejilla { grid-template-columns: 1fr; } .estado-datos { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 1000px) { .datos-rejilla { grid-template-columns: minmax(0, 1fr); } .estado-datos { grid-template-columns: 1fr 1fr; } }
+    .datos-columna, .datos-columna .card { min-width: 0; }
+    @media (max-width: 600px) {
+      .modo-proceso { flex-direction: column; align-items: stretch; }
+      .modo-proceso .segmentado { flex-wrap: wrap; border-radius: 16px; }
+      .modo-proceso .segmentado button { flex: 1 1 auto; }
+      .form-github { grid-template-columns: 1fr; }
+      .acciones .boton, .acciones-github .boton, .acciones-github .boton-chico { width: 100%; text-align: center; justify-content: center; }
+    }
   </style>
 </head>
 <body>
@@ -3742,7 +3750,7 @@
   function pasoTour(i) {
     TOUR.i = i;
     const p = PASOS_TOUR[i], el = document.querySelector(p.sel);
-    if (!el) return i + 1 < PASOS_TOUR.length ? pasoTour(i + 1) : cerrarTour();
+    if (!el || !el.getClientRects().length) return i + 1 < PASOS_TOUR.length ? pasoTour(i + 1) : cerrarTour();
     const ultimo = i === PASOS_TOUR.length - 1;
     TOUR.burbuja.innerHTML = `
       <div class="tb-paso">Paso ${i + 1} de ${PASOS_TOUR.length}</div>
@@ -3773,6 +3781,8 @@
     setTimeout(() => pasoTour(0), 300);
   }
   document.addEventListener("keydown", e => { if (e.key === "Escape" && TOUR.foco) cerrarTour(); });
+  // Si se cambia de página durante el recorrido, el recorrido se cierra
+  window.addEventListener("hashchange", () => { if (TOUR.foco && location.hash !== "#mapa") cerrarTour(); });
   document.getElementById("botonTour").addEventListener("click", iniciarTour);
   // Primera visita: el recorrido empieza solo la primera vez que se abre el mapa (ya cargado)
   const quizasTour = () => {
@@ -4618,7 +4628,13 @@ if (typeof module !== "undefined") module.exports = MOTOR;
 
   (async () => {
     try {
-      const guardado = await FLARE_ALMACEN.leer();
+      let guardado = await FLARE_ALMACEN.leer();
+      // Si lo publicado en el sitio es igual o más nuevo que lo guardado en este navegador, se usa lo publicado
+      if (guardado && guardado.datos && guardado.datos.meta && DATOS_MAPA.meta &&
+          String(guardado.datos.meta.ultimaFecha || "") <= String(DATOS_MAPA.meta.ultimaFecha || "")) {
+        await FLARE_ALMACEN.borrar();
+        guardado = null;
+      }
       if (guardado && guardado.datos && Array.isArray(guardado.datos.celdas)) {
         DATOS_MAPA.meta = guardado.datos.meta;
         DATOS_MAPA.celdas = guardado.datos.celdas;
