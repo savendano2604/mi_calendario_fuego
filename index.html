@@ -18,7 +18,7 @@
   <meta property="og:image" content="https://savendano2604.github.io/mi_calendario_fuego/img/vista-previa.png">
   <meta property="og:url" content="https://savendano2604.github.io/mi_calendario_fuego/">
   <meta name="twitter:card" content="summary_large_image">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,600..900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Leaflet (mapa) + leaflet-heat (mapa de calor) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -234,6 +234,24 @@
       "Nuestro método en 3 pasos": "Our method in 3 steps", "Cómo convertimos dos satélites distintos en un solo registro comparable": "How we turn two different satellites into one comparable record",
       "Contamos focos, no puntos.": "We count hotspots, not points.", "Seguimos sin cortes.": "No gaps.",
       "Nuestro método en 4 pasos": "Our method in 4 steps", "Satélite": "Satellite",
+      "Lo que hace FLARE": "What FLARE does", "Cuatro herramientas,": "Four tools,", "una sola mirada al fuego": "one single view of fire",
+      "¿Dónde se quema?": "Where does it burn?", "Mapa de calor de 25 años, municipio por municipio, con buscador y viaje en el tiempo.": "A 25-year heat map, municipality by municipality, with search and time travel.",
+      "Abrir el mapa": "Open the map", "Cada año y cada mes en un solo calendario, con la temporada de quemas de cada lugar.": "Every year and month in a single calendar, with each place's burning season.",
+      "Ver el calendario": "See the calendar", "¿Qué tan grave va el año?": "How serious is the year?", "Compara el año en curso con los anteriores y avisa antes de que llegue la temporada.": "Compares the current year with previous ones and warns before the season arrives.",
+      "Ver la alerta": "See the alert", "Siempre al día": "Always up to date", "Sube los archivos de la NASA y la página los procesa sola, en segundos y sin servidores.": "Upload the NASA files and the page processes them by itself, in seconds and with no servers.",
+      "Actualizar datos": "Update data", "Cómo funciona": "How it works", "De dos satélites a": "From two satellites to", "una alerta para tu municipio": "an alert for your municipality",
+      "2 satélites": "2 satellites", "Dos miradas distintas": "Two different views", "MODIS (desde 2001) y VIIRS (desde 2012) ven el fuego diferente: VIIRS ve unas 3,5 veces más.": "MODIS (since 2001) and VIIRS (since 2012) see fire differently: VIIRS sees about 3.5 times more.",
+      "1 método": "1 method", "Una sola escala": "One single scale", "Contamos focos en cuadros de 11 km y armonizamos por región y mes. Error en la validación: 3 %.": "We count hotspots in 11 km squares and harmonize by region and month. Validation error: 3 %.",
+      "1.120 municipios": "1,120 municipalities", "Una alerta para cada lugar": "An alert for every place", "Cada municipio con su mapa, su calendario, su temporada de quemas y su alerta del año.": "Every municipality with its map, its calendar, its burning season and its alert for the year.",
+      "¿Cómo va el fuego en": "How is fire going in", "tu municipio": "your municipality", "Búscalo y mira su mapa, su calendario y su alerta de este año.": "Search for it and see its map, its calendar and its alert for this year.",
+      "Ver la alerta de hoy": "See today's alert", "Explora": "Explore", "Emergencias": "Emergencies", "Línea de emergencias": "Emergency line", "Bomberos": "Firefighters",
+      "Límites: geoBoundaries": "Boundaries: geoBoundaries",
+      "Fire Long-term Analysis & Rapid Early-warning. 25 años de fuego en Colombia, armonizados en un solo calendario.": "Fire Long-term Analysis & Rapid Early-warning. 25 years of fire in Colombia, harmonized into a single calendar.",
+      "NASA Space Apps Challenge 2026 · Reto MODIS + VIIRS": "NASA Space Apps Challenge 2026 · MODIS + VIIRS challenge",
+      "25 años de fuego en Colombia, en un solo calendario": "25 years of fire in Colombia, in one single calendar", "25 años de fuego en Colombia, en": "25 years of fire in Colombia, in",
+      "focos de fuego armonizados": "harmonized fire hotspots",
+      "Cada cuadro es un mes de fuego en Colombia. Más brillante, más focos. Haz clic en uno para verlo en el mapa.": "Each square is a month of fire in Colombia. Brighter means more hotspots. Click one to see it on the map.",
+      "poco": "low", "mucho": "high",
       "Hacemos un llamado a toda la comunidad para": "We call on the whole community to", "prevenir nuevos incendios": "prevent new fires",
       "Evita las quemas agrícolas en época seca": "Avoid agricultural burning in the dry season",
       "No arrojes colillas de cigarrillo en zonas con vegetación": "Don't throw cigarette butts in areas with vegetation",
@@ -418,7 +436,6 @@
       R("faltan para el", () => "left until"),
       R("1 de " + M, (_, m) => `${mes(m)} 1`),
       R(", cuando suele empezar la temporada de quemas en (.+?)\\. La temporada va", (_, l) => `, when the burning season usually starts in ${l}. The season runs`),
-      R("en", () => "in"),
       R(", con el pico en", () => ", peaking in"),
       R(", and en esos meses ocurre el", () => ", and those months account for"),
       R(", y en esos meses ocurre el", () => ", and those months account for"),
@@ -576,7 +593,7 @@
     .portada p { opacity: .8; max-width: 480px; margin-bottom: 30px; }
     .botones { display: flex; gap: 14px; flex-wrap: wrap; }
 
-    .portada-foto {
+    .portada-foto-antigua {
       background: url("fuego.jpg") center/cover, linear-gradient(135deg, #c9a54c, #3d3420 55%, #121212);
       border-top-left-radius: 50% 100%;
       border-left: 10px solid var(--dorado);
@@ -1564,6 +1581,136 @@
       .pv-reporta { grid-column: span 3; flex-direction: row; justify-content: center; text-align: left; }
     }
 
+    /* ====== IDENTIDAD: títulos en Archivo condensada (como un cartel de alerta) ====== */
+    :root { --display: "Archivo", "Inter", sans-serif; }
+    h1, .seccion h2, .cartel-titulo, .cuenta-numero, .da-año, .cg-logo {
+      font-family: var(--display); font-stretch: 78%; font-variation-settings: "wdth" 78; letter-spacing: -0.01em;
+    }
+    .seccion h2 { font-weight: 850; font-size: 44px; line-height: 1.02; }
+    .cartel-titulo { font-variation-settings: "wdth" 72; font-stretch: 72%; letter-spacing: 0; }
+
+    /* ====== PORTADA: el calendario real es la imagen ====== */
+    .portada { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: center; gap: 24px; min-height: calc(100vh - 104px); padding-right: 64px; }
+    .portada-texto { padding: 40px 24px 40px 80px; }
+    .portada-kicker { font-size: 14px; color: var(--dorado); font-weight: 600; }
+    .portada .portada-titulo { font-size: clamp(42px, 4.6vw, 72px); line-height: .95; font-weight: 900; margin: 14px 0 20px; color: var(--blanco);
+                               font-variation-settings: "wdth" 72; font-stretch: 72%; text-wrap: balance; max-width: 17ch; }
+    .portada p { font-size: 17px; line-height: 1.6; max-width: 46ch; opacity: .82; margin-bottom: 26px; }
+    .hechos { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 0; margin: 26px 0 0; }
+    .hechos div { padding: 0 22px; border-left: 1px solid rgba(255,255,255,.14); }
+    .hechos div:first-child { padding-left: 0; border-left: 0; }
+    .hechos dt { font-family: var(--display); font-variation-settings: "wdth" 78; font-weight: 800; font-size: 30px; color: var(--blanco); letter-spacing: -0.01em; }
+    .hechos dd { margin: 2px 0 0; font-size: 12.5px; color: var(--gris); max-width: 16ch; line-height: 1.35; }
+
+    .portada-cal { margin: 0; padding: 26px 26px 20px; border-radius: 28px; position: relative;
+                   background: radial-gradient(120% 80% at 70% 0%, rgba(242,90,42,.10), transparent 60%), rgba(255,255,255,.025);
+                   border: 1px solid rgba(255,255,255,.08); box-shadow: 0 40px 120px -40px rgba(242,90,42,.35); }
+    .pc-meses, .pc-fila { display: grid; grid-template-columns: 40px repeat(12, minmax(0, 1fr)); gap: 4px; align-items: center; }
+    .pc-meses { margin-bottom: 6px; }
+    .pc-meses span { font-size: 11px; color: var(--gris); text-align: center; }
+    .pc-rejilla { display: flex; flex-direction: column; gap: 4px; }
+    .pc-año { font-size: 11px; color: var(--gris); font-variant-numeric: tabular-nums; }
+    .pc-año.fuerte { color: #d6d3cc; font-weight: 700; }
+    .pc-c { height: 15px; border-radius: 4px; background: var(--c); border: 0; padding: 0; cursor: pointer; box-shadow: var(--g, none);
+            transition: transform .2s var(--resorte), outline-color .2s; outline: 1.5px solid transparent; outline-offset: 1px; }
+    .pc-c:hover, .pc-c:focus-visible { transform: scale(1.35); outline-color: #fff; z-index: 2; position: relative; }
+    .pc-c.vacia { background: repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 3px, transparent 3px 6px); cursor: default; box-shadow: none; }
+    /* encendido: un solo momento, en orden de tiempo, como brasas que se prenden */
+    .portada-cal:not(.encendido) .pc-c:not(.vacia) { opacity: 0; transform: scale(.4); }
+    .portada-cal.encendido .pc-c:not(.vacia) { animation: brasa .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d); }
+    @keyframes brasa { 0% { opacity: 0; transform: scale(.4); filter: brightness(3) saturate(.4); } 60% { opacity: 1; filter: brightness(1.6); } 100% { opacity: 1; transform: none; filter: none; } }
+    .pc-pie { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 16px; font-size: 12.5px; color: var(--gris); line-height: 1.45; }
+    .pc-escala { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .pc-escala i, .pc-escala b { display: inline-block; width: 70px; height: 8px; border-radius: 4px; }
+    .pc-escala i { display: none; }
+    .pc-escala b { background: linear-gradient(90deg, #2c2c30, #5b4a33, #a8742e, #e8892c, #f25a2a, #ff6a3d); }
+    @media (prefers-reduced-motion: reduce) { .portada-cal .pc-c { animation: none !important; opacity: 1 !important; transform: none !important; } }
+    @media (max-width: 1100px) {
+      .portada { grid-template-columns: 1fr; padding: 0 20px 40px; }
+      .portada-texto { padding: 40px 4px 10px; }
+      .portada .portada-titulo { max-width: 14ch; }
+    }
+    @media (max-width: 600px) {
+      .portada-cal { padding: 16px 12px 14px; border-radius: 20px; }
+      .pc-meses, .pc-fila { grid-template-columns: 30px repeat(12, minmax(0, 1fr)); gap: 2px; }
+      .pc-rejilla { gap: 2px; } .pc-c { height: 10px; border-radius: 2px; }
+      .pc-pie { flex-direction: column; align-items: flex-start; }
+      .hechos dt { font-size: 24px; } .hechos div { padding: 0 12px; }
+    }
+
+    /* ====== INICIO: secciones con íconos (historia de FLARE) ====== */
+    .portada { position: relative; grid-template-rows: minmax(calc(100vh - 104px), auto); min-height: 0; }
+    .portada > .portada-texto, .portada > .portada-cal { position: relative; z-index: 1; }
+    .brasas { position: absolute; left: 0; right: 0; top: 0; height: calc(100vh - 104px); width: 100%; pointer-events: none; z-index: 0;
+              -webkit-mask-image: linear-gradient(#000 75%, transparent); mask-image: linear-gradient(#000 75%, transparent); }
+    .landing { grid-column: 1 / -1; position: relative; z-index: 1; padding: 30px 0 20px 80px; display: flex; flex-direction: column; gap: 90px; }
+    .lp-kicker { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 800; letter-spacing: 2.6px; text-transform: uppercase; color: var(--dorado); }
+    .lp-kicker span { width: 28px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, #ff6a3d, var(--dorado)); }
+    .lp-titulo { font-family: var(--display); font-variation-settings: "wdth" 78; font-stretch: 78%; font-weight: 850; font-size: clamp(32px, 3.6vw, 52px);
+                 line-height: 1; letter-spacing: -0.01em; margin: 12px 0 34px; max-width: 22ch; }
+    .portada .portada-titulo .fuego { display: inline; }
+    .lp-titulo span, .lp-cta h2 span, .portada .portada-titulo .fuego { background: linear-gradient(90deg, #ffb347, #ff6a3d 55%, var(--dorado)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .lp-features { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+    .feat { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 28px 24px 24px; border-radius: 24px; text-decoration: none; color: var(--blanco); overflow: hidden;
+            background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)); border: 1px solid rgba(255,255,255,.09);
+            transition: transform .45s var(--resorte), border-color .3s, box-shadow .45s; }
+    .feat::before { content: ""; position: absolute; inset: -40% -40% auto auto; width: 220px; height: 220px; border-radius: 50%;
+                    background: radial-gradient(circle, rgba(255,106,61,.28), transparent 65%); opacity: 0; transition: opacity .45s; }
+    .feat:hover { transform: translateY(-8px); border-color: rgba(255,140,60,.55); box-shadow: 0 30px 60px -28px rgba(255,106,61,.55); }
+    .feat:hover::before { opacity: 1; }
+    .feat-ico, .flujo-ico { position: relative; display: grid; place-items: center; width: 68px; height: 68px; border-radius: 50%;
+               background: radial-gradient(circle at 30% 25%, rgba(255,179,71,.35), rgba(255,106,61,.12) 60%, rgba(255,255,255,.02));
+               border: 1.5px solid rgba(255,150,70,.55); box-shadow: 0 0 0 6px rgba(255,106,61,.06), 0 12px 30px -10px rgba(255,106,61,.6); }
+    .feat-ico svg, .flujo-ico svg { width: 32px; height: 32px; fill: none; stroke: #ffd59a; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .feat-ico svg .relleno, .flujo-ico svg .relleno { fill: #ff8a3d; stroke: none; }
+    .feat:hover .feat-ico { animation: latidoIco 1.4s ease-in-out infinite; }
+    @keyframes latidoIco { 50% { box-shadow: 0 0 0 12px rgba(255,106,61,.08), 0 12px 40px -6px rgba(255,106,61,.8); } }
+    .feat h3 { font-family: var(--display); font-variation-settings: "wdth" 80; font-size: 22px; font-weight: 800; margin: 8px 0 0; line-height: 1.1; }
+    .feat p { font-size: 14px; line-height: 1.55; color: #c8c5bd; margin: 0; flex: 1; }
+    .feat-ir { font-size: 13.5px; font-weight: 700; color: var(--dorado); }
+    .feat-ir i { font-style: normal; display: inline-block; transition: transform .3s var(--resorte); }
+    .feat:hover .feat-ir i { transform: translateX(6px); }
+    .lp-flujo { display: grid; grid-template-columns: minmax(0, 1fr) 70px minmax(0, 1fr) 70px minmax(0, 1fr); align-items: start; }
+    .flujo-paso { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .flujo-ico { width: 84px; height: 84px; }
+    .flujo-ico svg { width: 40px; height: 40px; }
+    .flujo-num { font-family: var(--display); font-variation-settings: "wdth" 78; font-size: 30px; font-weight: 850; margin-top: 10px; color: var(--dorado); line-height: 1; }
+    .flujo-paso h3 { font-size: 18px; font-weight: 800; margin: 2px 0 0; }
+    .flujo-paso p { font-size: 14px; line-height: 1.55; color: #c8c5bd; margin: 0; max-width: 32ch; }
+    .flujo-linea { margin-top: 41px; height: 2px; background: repeating-linear-gradient(90deg, rgba(255,150,70,.7) 0 8px, transparent 8px 16px);
+                   background-size: 32px 2px; animation: fluir 1.2s linear infinite; }
+    @keyframes fluir { to { background-position: 32px 0; } }
+    .lp-cta { display: flex; align-items: center; justify-content: space-between; gap: 30px; flex-wrap: wrap; padding: 44px 48px; border-radius: 30px; position: relative; overflow: hidden;
+              background: radial-gradient(90% 140% at 100% 0%, rgba(255,106,61,.35), transparent 55%), radial-gradient(70% 120% at 0% 100%, rgba(201,165,76,.22), transparent 60%), rgba(255,255,255,.03);
+              border: 1px solid rgba(255,140,60,.35); box-shadow: 0 40px 90px -50px rgba(255,106,61,.7); }
+    .lp-cta h2 { font-family: var(--display); font-variation-settings: "wdth" 78; font-stretch: 78%; font-weight: 850; font-size: clamp(30px, 3.2vw, 46px); line-height: 1; margin: 0 0 10px; }
+    .lp-cta p { margin: 0; color: #d6d3cc; font-size: 16px; }
+    .lp-cta-botones { display: flex; gap: 12px; flex-wrap: wrap; }
+    /* pie de página */
+    .pie-grande { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 30px; padding: 26px 0 22px; border-bottom: 1px solid rgba(255,255,255,.07); margin-bottom: 16px; }
+    .pie-logo { font-family: var(--display); font-variation-settings: "wdth" 78; font-weight: 900; font-size: 30px; color: var(--blanco); }
+    .pie-logo span { color: var(--dorado); }
+    .pie-marca p { font-size: 13.5px; line-height: 1.6; max-width: 40ch; margin: 8px 0 0; }
+    .pie-col { display: flex; flex-direction: column; gap: 7px; font-size: 13.5px; }
+    .pie-col a { color: #d6d3cc !important; text-decoration: none; transition: color .2s; }
+    .pie-col a:hover { color: var(--dorado) !important; }
+    .pie-tit { font-size: 11.5px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--dorado); margin-bottom: 2px; }
+    .pie-num { color: #3ccf7a !important; font-size: 15px; }
+    @media (max-width: 1100px) {
+      .landing { padding: 20px 0 10px; gap: 64px; }
+      .lp-features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lp-flujo { grid-template-columns: 1fr; gap: 26px; }
+      .flujo-linea { display: none; }
+      .pie-grande { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .lp-features { grid-template-columns: 1fr; }
+      .lp-cta { padding: 28px 22px; }
+      .pie-grande { grid-template-columns: 1fr; }
+      .brasas { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { .flujo-linea, .feat:hover .feat-ico { animation: none; } .brasas { display: none; } }
+
     /* ====== PÁGINA DATOS ====== */
     .datos-rejilla { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
     .datos-columna { display: flex; flex-direction: column; gap: 20px; }
@@ -1710,8 +1857,8 @@
   <!-- ====================== PORTADA ====================== -->
   <section class="portada pagina" id="inicio">
     <div class="portada-texto">
-      <span class="etiqueta">FIRE LONG-TERM ANALYSIS & RAPID EARLY-WARNING</span>
-      <h1>25 años de fuego, <span>un solo calendario</span></h1>
+      <span class="portada-kicker">NASA Space Apps Challenge 2026 · Reto MODIS + VIIRS</span>
+      <h1 class="portada-titulo">25 años de fuego en Colombia, en <span class="fuego">un solo calendario</span></h1>
       <p>Unimos los registros de los satélites MODIS y VIIRS de la NASA para saber cuándo y dónde se quema Colombia, y avisar antes de que llegue la temporada crítica.</p>
       <div class="botones">
         <a href="#mapa" class="boton">▶ Explorar el mapa</a>
@@ -1722,14 +1869,58 @@
         <input type="search" data-buscador placeholder="Busca tu municipio o departamento…" autocomplete="off" aria-label="Buscar municipio o departamento">
         <ul class="bs-lista" role="listbox"></ul>
       </div>
-      <div class="cifras-portada">
-        <div><b>25</b><span>años de registros satelitales</span></div>
-        <div><b>2</b><span>satélites armonizados: MODIS y VIIRS</span></div>
-        <div><b>1.120</b><span>municipios analizados</span></div>
-        <div><b>3 %</b><span>de error en la validación</span></div>
-      </div>
+      <dl class="hechos">
+        <div><dt id="hechoFocos">1.175.758</dt><dd>focos de fuego armonizados</dd></div>
+        <div><dt>1.120</dt><dd>municipios analizados</dd></div>
+        <div><dt>3 %</dt><dd>de error en la validación</dd></div>
+      </dl>
     </div>
-    <div class="portada-foto"></div>
+    <figure class="portada-cal" id="portadaCal" aria-label="Calendario del fuego en Colombia, mes a mes, de 2001 a hoy">
+      <div class="pc-meses" id="pcMeses"></div>
+      <div class="pc-rejilla" id="pcRejilla"></div>
+      <figcaption class="pc-pie">
+        <span>Cada cuadro es un mes de fuego en Colombia. Más brillante, más focos. Haz clic en uno para verlo en el mapa.</span>
+        <span class="pc-escala" aria-hidden="true"><i></i>poco <b></b> mucho</span>
+      </figcaption>
+    </figure>
+    <canvas class="brasas" id="brasas" aria-hidden="true"></canvas>
+
+    <!-- ====== Lo que sigue del inicio: la historia de FLARE en secciones ====== -->
+    <div class="landing">
+      <section class="lp-bloque">
+        <div class="lp-kicker"><span></span>Lo que hace FLARE</div>
+        <h2 class="lp-titulo">Cuatro herramientas, <span>una sola mirada al fuego</span></h2>
+        <div class="lp-features">
+          <a class="feat" href="#mapa"><span class="feat-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 42s-13-11.5-13-22a13 13 0 0 1 26 0c0 10.5-13 22-13 22z"/><path d="M24 14c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-2 1-3.2 2-4 0 1.5.7 2.4 1.5 2.8-.4-2.8.2-5.3.5-7.3z" class="relleno"/></svg></span><h3>¿Dónde se quema?</h3><p>Mapa de calor de 25 años, municipio por municipio, con buscador y viaje en el tiempo.</p><span class="feat-ir">Abrir el mapa <i>→</i></span></a>
+          <a class="feat" href="#calendario"><span class="feat-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="10" width="34" height="31" rx="5"/><path d="M7 19h34M16 6v8M32 6v8"/><rect x="13" y="24" width="5" height="4" rx="1" class="relleno"/><rect x="21.5" y="24" width="5" height="4" rx="1"/><rect x="30" y="24" width="5" height="4" rx="1" class="relleno"/><rect x="13" y="32" width="5" height="4" rx="1"/><rect x="21.5" y="32" width="5" height="4" rx="1" class="relleno"/></svg></span><h3>¿Cuándo se quema?</h3><p>Cada año y cada mes en un solo calendario, con la temporada de quemas de cada lugar.</p><span class="feat-ir">Ver el calendario <i>→</i></span></a>
+          <a class="feat" href="#alerta"><span class="feat-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6 43 39H5z"/><path d="M24 18v10"/><circle cx="24" cy="33.5" r="1.6" class="relleno"/></svg></span><h3>¿Qué tan grave va el año?</h3><p>Compara el año en curso con los anteriores y avisa antes de que llegue la temporada.</p><span class="feat-ir">Ver la alerta <i>→</i></span></a>
+          <a class="feat" href="#datos"><span class="feat-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 30V8M15 17l9-9 9 9"/><path d="M8 30v6a5 5 0 0 0 5 5h22a5 5 0 0 0 5-5v-6"/></svg></span><h3>Siempre al día</h3><p>Sube los archivos de la NASA y la página los procesa sola, en segundos y sin servidores.</p><span class="feat-ir">Actualizar datos <i>→</i></span></a>
+        </div>
+      </section>
+
+      <section class="lp-bloque">
+        <div class="lp-kicker"><span></span>Cómo funciona</div>
+        <h2 class="lp-titulo">De dos satélites a <span>una alerta para tu municipio</span></h2>
+        <div class="lp-flujo">
+          <div class="flujo-paso"><span class="flujo-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="19" y="19" width="10" height="10" rx="2" transform="rotate(45 24 24)"/><path d="M14 14 6 6M10 18l-6 6 4 4 6-6M18 10l6-6 4 4-6 6M34 34l8 8M38 30l6-6-4-4-6 6M30 38l-6 6-4-4 6-6"/></svg></span><div class="flujo-num">2 satélites</div><h3>Dos miradas distintas</h3><p>MODIS (desde 2001) y VIIRS (desde 2012) ven el fuego diferente: VIIRS ve unas 3,5 veces más.</p></div>
+          <div class="flujo-linea" aria-hidden="true"></div>
+          <div class="flujo-paso"><span class="flujo-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 8v32M14 40h20M10 14h28"/><path d="M10 14 4 28a6 6 0 0 0 12 0zM38 14l-6 14a6 6 0 0 0 12 0z"/></svg></span><div class="flujo-num">1 método</div><h3>Una sola escala</h3><p>Contamos focos en cuadros de 11 km y armonizamos por región y mes. Error en la validación: 3 %.</p></div>
+          <div class="flujo-linea" aria-hidden="true"></div>
+          <div class="flujo-paso"><span class="flujo-ico"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 34V22a12 12 0 0 1 24 0v12l4 4H8z"/><path d="M20 42a4 4 0 0 0 8 0"/><path d="M24 6v4"/></svg></span><div class="flujo-num">1.120 municipios</div><h3>Una alerta para cada lugar</h3><p>Cada municipio con su mapa, su calendario, su temporada de quemas y su alerta del año.</p></div>
+        </div>
+      </section>
+
+      <section class="lp-cta">
+        <div>
+          <h2>¿Cómo va el fuego en <span>tu municipio</span>?</h2>
+          <p>Búscalo y mira su mapa, su calendario y su alerta de este año.</p>
+        </div>
+        <div class="lp-cta-botones">
+          <a href="#alerta" class="boton">Ver la alerta de hoy</a>
+          <a href="#mapa" class="boton blanco">Abrir el mapa</a>
+        </div>
+      </section>
+    </div>
   </section>
 
   <!-- ====================== MAPA ====================== -->
@@ -2232,7 +2423,6 @@
             <li>Focos de fuego: NASA FIRMS — MODIS Collection 6.1 (Terra y Aqua), VIIRS S-NPP 375 m y VIIRS NOAA-20 375 m.</li>
             <li>Límites de municipios y departamentos: geoBoundaries (William &amp; Mary geoLab).</li>
             <li>Mapas base: Esri. Librerías: Leaflet, Leaflet.heat y Apache ECharts.</li>
-            <li>Foto de la portada: (pongan aquí la fuente de la foto).</li>
           </ul>
           <div class="chips-tec"><span>HTML</span><span>CSS</span><span>JavaScript</span><span>Python</span><span>Leaflet</span><span>ECharts</span><span>GitHub Pages</span></div>
         </div>
@@ -2251,6 +2441,24 @@
 
   <!-- ====================== PIE DE PÁGINA ====================== -->
   <footer class="pie">
+    <div class="contenido pie-grande">
+      <div class="pie-marca">
+        <div class="pie-logo">🔥 FL<span>ARE</span></div>
+        <p>Fire Long-term Analysis &amp; Rapid Early-warning. 25 años de fuego en Colombia, armonizados en un solo calendario.</p>
+      </div>
+      <div class="pie-col" role="navigation" aria-label="Páginas">
+        <div class="pie-tit">Explora</div>
+        <a href="#mapa">Mapa</a><a href="#calendario">Calendario</a><a href="#alerta">Alerta</a><a href="#datos">Datos</a><a href="#nosotros">Nosotros</a>
+      </div>
+      <div class="pie-col">
+        <div class="pie-tit">Datos</div>
+        <span>NASA FIRMS</span><span>MODIS C6.1 · VIIRS S-NPP · VIIRS NOAA-20</span><span>Límites: geoBoundaries</span>
+      </div>
+      <div class="pie-col">
+        <div class="pie-tit">Emergencias</div>
+        <span>Línea de emergencias <b class="pie-num">123</b></span><span>Bomberos <b class="pie-num">119</b></span>
+      </div>
+    </div>
     <div class="contenido pie-fila">
       <div><b>🔥 FL<span>ARE</span></b> · Fire Long-term Analysis &amp; Rapid Early-warning</div>
       <div>NASA Space Apps Challenge 2026 · Datos: NASA FIRMS (MODIS + VIIRS) · Actualizado al <span id="pieFecha"></span> · <a href="https://github.com/savendano2604/mi_calendario_fuego" target="_blank" rel="noopener">GitHub ↗</a></div>
@@ -3917,6 +4125,93 @@
   </script>
   <script type="text/x-flare">
   // =====================================================================
+  // PORTADA: el calendario real del fuego en Colombia (2001–hoy), mes a mes
+  // Solo muestra datos que ya existen: no cambia ningún cálculo.
+  // =====================================================================
+  (() => {
+    const cont = document.getElementById("portadaCal");
+    if (!cont) return;
+    const EN = window.IDIOMA === "en";
+    const CORTOS = EN ? ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"] : ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+    const LARGOS = EN ? ["January","February","March","April","May","June","July","August","September","October","November","December"] : MESES;
+    const ultimo = Number(DATOS_MAPA.meta.ultimaFecha.slice(5, 7));
+    // focos de todo el país por año y mes
+    const s = new Float64Array(NA * 12);
+    let total = 0;
+    for (const c of celdas) for (const [a, m, f] of c.serie) { s[a * 12 + m - 1] += f; total += f; }
+    document.getElementById("hechoFocos").textContent = fmt(total);
+    const max = Math.max(...s);
+    // color según el puesto del mes entre todos los meses (así se distinguen meses tranquilos y meses de quemas)
+    const ordenados = Array.from(s.slice(0, (NA - 1) * 12 + ultimo)).sort((x, y) => x - y);
+    const rango = v => { let lo = 0, hi = ordenados.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (ordenados[mid] < v) lo = mid + 1; else hi = mid; } return lo / (ordenados.length - 1); };
+    // rampa de brasa: carbón → ámbar → naranja → rojo
+    const RAMPA = [[44,44,48],[91,74,51],[168,116,46],[232,137,44],[242,90,42],[255,106,61]];
+    const color = t => {
+      const x = Math.min(.999, Math.max(0, t)) * (RAMPA.length - 1), i = Math.floor(x), f = x - i, a = RAMPA[i], b = RAMPA[i + 1];
+      return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(",")})`;
+    };
+    document.getElementById("pcMeses").innerHTML = "<span></span>" + CORTOS.map(m => `<span>${m[0]}</span>`).join("");
+    let html = "", orden = 0;
+    for (let a = 0; a < NA; a++) {
+      const año = A0 + a;
+      let fila = `<span class="pc-año${año % 5 === 0 || a === NA - 1 ? " fuerte" : ""}">${año % 5 === 0 || a === 0 || a === NA - 1 ? año : ""}</span>`;
+      for (let m = 1; m <= 12; m++) {
+        if (a === NA - 1 && m > ultimo) { fila += `<span class="pc-c vacia"></span>`; continue; }
+        const v = s[a * 12 + m - 1], t = Math.pow(rango(v), 1.6), col = color(t);
+        const brillo = t > .7 ? `0 0 ${Math.round(4 + (t - .7) * 50)}px ${col}` : "none";
+        fila += `<button class="pc-c" data-a="${a}" data-m="${m}" style="--c:${col}; --g:${brillo}; --d:${(orden++ * 6) + 150}ms"
+                  aria-label="${LARGOS[m - 1]} ${año}: ${fmt(v)}"></button>`;
+      }
+      html += `<div class="pc-fila">${fila}</div>`;
+    }
+    document.getElementById("pcRejilla").innerHTML = html;
+
+    // etiqueta al pasar el mouse
+    const tip = document.createElement("div");
+    tip.className = "cal-tip"; tip.setAttribute("role", "tooltip");
+    document.body.appendChild(tip);
+    const promMes = m => { let t = 0; for (let a = 0; a < NA - 1; a++) t += s[a * 12 + m - 1]; return t / (NA - 1); };
+    cont.addEventListener("mousemove", e => {
+      const c = e.target.closest(".pc-c[data-m]");
+      if (!c) { tip.classList.remove("visible"); return; }
+      const a = Number(c.dataset.a), m = Number(c.dataset.m), v = s[a * 12 + m - 1], ref = promMes(m);
+      const dif = ref >= 1 ? (v / ref - 1) * 100 : 0;
+      tip.innerHTML = `<b>${LARGOS[m - 1]} ${A0 + a}</b><br>${fmt(v)} ${EN ? "fire hotspots" : "focos de fuego"}` +
+        (Math.abs(dif) >= 10 ? `<br><span class="${dif > 0 ? "t-mal" : "t-bien"}">${dif > 0 ? "▲" : "▼"} ${Math.abs(Math.round(dif))} % ${EN ? (dif > 0 ? "more than a normal " : "less than a normal ") + LARGOS[m - 1] : (dif > 0 ? "más" : "menos") + " que un " + LARGOS[m - 1].toLowerCase() + " normal"}</span>` : "") +
+        `<br><span class="t-pista">${EN ? "Click to see it on the map" : "Clic para verlo en el mapa"}</span>`;
+      tip.classList.add("visible");
+      const w = tip.offsetWidth, hh = tip.offsetHeight;
+      let x = e.clientX + 16, y = e.clientY + 16;
+      if (x + w > innerWidth - 8) x = e.clientX - w - 16;
+      if (y + hh > innerHeight - 8) y = e.clientY - hh - 16;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    });
+    cont.addEventListener("mouseleave", () => tip.classList.remove("visible"));
+    window.addEventListener("scroll", () => tip.classList.remove("visible"), { passive: true });
+    // clic: ver ese mes en el mapa (usa los mismos filtros de siempre)
+    cont.addEventListener("click", e => {
+      const c = e.target.closest(".pc-c[data-m]");
+      if (!c) return;
+      tip.classList.remove("visible");
+      selAño.value = String(A0 + Number(c.dataset.a));
+      selMes.value = c.dataset.m;
+      aplicarFiltros();
+      location.hash = "#mapa";
+    });
+    // encender una sola vez, cuando la portada se ve por primera vez
+    const encender = () => {
+      if (cont.classList.contains("encendido")) return;
+      if (location.hash && location.hash !== "#inicio") return;
+      requestAnimationFrame(() => cont.classList.add("encendido"));
+    };
+    if (document.getElementById("cargando")) document.addEventListener("flare-listo", () => setTimeout(encender, 250));
+    else encender();
+    window.addEventListener("hashchange", encender);
+  })();
+  </script>
+
+  <script type="text/x-flare">
+  // =====================================================================
   // EXPERIENCIA: menú en celular, buscador de municipios y recorrido guiado
   // =====================================================================
   // ---------- 1. Menú en celular ----------
@@ -4527,6 +4822,7 @@
     ".cifras-portada > div", ".cal-kpis > .card", ".encabezado-pagina", ".barra-herramientas", ".explicacion",
     ".mapa-y-panel > *", "#mapa .viaje", ".cal-rejilla > .card", ".cal-lateral > .card", ".alerta-rejilla > .card",
     "#alerta .contenido > .card", ".equipo > .card", "#nosotros .contenido > .card", ".datos-columna > .card", ".nav-paginas",
+    ".lp-kicker", ".lp-titulo", ".lp-features > .feat", ".flujo-paso", ".lp-cta", ".cartel", ".prevencion",
   ].join(", ");
   const observador = new IntersectionObserver(entradas => {
     let orden = 0;
@@ -4552,6 +4848,75 @@
   window.addEventListener("hashchange", () => requestAnimationFrame(revelarPagina));
   revelarPagina();
   </script>
+  <script>
+  // =====================================================================
+  // BRASAS: chispas que suben detrás de la portada. Solo decoración.
+  // Se pausan si la portada no se ve, si la pestaña está oculta o si el usuario pidió menos movimiento.
+  // =====================================================================
+  (() => {
+    const lienzo = document.getElementById("brasas");
+    if (!lienzo || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ctx = lienzo.getContext("2d");
+    const dpr = 0.75;                 // resolución reducida: son brillos difusos y así cuesta mucho menos dibujarlos
+    let ultimo = 0;
+    let w = 0, hh = 0, chispas = [], activo = false, cuadro = 0;
+    // un "sprite" de brillo dibujado una sola vez (más liviano que sombras en cada cuadro)
+    const sprite = document.createElement("canvas"); sprite.width = sprite.height = 32;
+    const sc = sprite.getContext("2d"), g = sc.createRadialGradient(16, 16, 0, 16, 16, 16);
+    g.addColorStop(0, "rgba(255,240,200,1)"); g.addColorStop(.25, "rgba(255,170,70,.9)"); g.addColorStop(.6, "rgba(255,90,40,.25)"); g.addColorStop(1, "rgba(255,90,40,0)");
+    sc.fillStyle = g; sc.fillRect(0, 0, 32, 32);
+    const nueva = (inicio) => ({ x: Math.random() * w, y: inicio ? Math.random() * hh : hh + 10, r: 3 + Math.random() * 7,
+                                 v: .25 + Math.random() * .7, osc: Math.random() * 6.28, a: .25 + Math.random() * .6 });
+    function medir() {
+      const r = lienzo.getBoundingClientRect();
+      w = r.width; hh = r.height;
+      lienzo.width = Math.round(w * dpr); lienzo.height = Math.round(hh * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const n = Math.round(Math.min(38, w / 38));
+      chispas = Array.from({ length: n }, () => nueva(true));
+    }
+    function paso(t) {
+      if (!activo) return;
+      cuadro = requestAnimationFrame(paso);
+      if (t - ultimo < 33) return;      // como máximo 30 cuadros por segundo
+      const dt = Math.min(3, (t - ultimo) / 16.7 || 1); ultimo = t;
+      ctx.clearRect(0, 0, w, hh);
+      ctx.globalCompositeOperation = "lighter";
+      for (const c of chispas) {
+        c.y -= c.v * dt; c.osc += .02 * dt; c.x += Math.sin(c.osc) * .35 * dt;
+        const vida = Math.max(0, Math.min(1, c.y / hh));
+        ctx.globalAlpha = c.a * vida * (0.75 + Math.sin(c.osc * 3) * .25);
+        ctx.drawImage(sprite, c.x - c.r, c.y - c.r, c.r * 2, c.r * 2);
+        if (c.y < -10) Object.assign(c, nueva(false));
+      }
+      ctx.globalAlpha = 1;
+    }
+    const inicio = document.getElementById("inicio");
+    function revisar() {
+      const ver = inicio.classList.contains("visible") && !document.hidden && lienzo.getBoundingClientRect().bottom > 0;
+      if (ver && !activo) { activo = true; if (!w) medir(); cuadro = requestAnimationFrame(paso); }
+      if (!ver && activo) { activo = false; cancelAnimationFrame(cuadro); }
+    }
+    window.addEventListener("resize", () => { medir(); });
+    window.addEventListener("scroll", revisar, { passive: true });
+    window.addEventListener("hashchange", () => setTimeout(revisar, 60));
+    document.addEventListener("visibilitychange", revisar);
+    document.addEventListener("flare-listo", () => { medir(); revisar(); });
+    setTimeout(() => { medir(); revisar(); }, 300);
+  })();
+  </script>
+
+  <script>
+    if (window.L && L.HeatLayer && !L.HeatLayer.prototype.__protegido) {
+      const redibujar = L.HeatLayer.prototype._redraw;
+      L.HeatLayer.prototype._redraw = function () {
+        if (!this._map || !this._heat || !this._canvas || !this._canvas.width || !this._canvas.height) { this._frame = null; return; }
+        return redibujar.apply(this, arguments);
+      };
+      L.HeatLayer.prototype.__protegido = true;
+    }
+  </script>
+
   <!-- Motor de procesamiento (se usa dentro de un Web Worker; aquí solo se guarda como texto) -->
   <script type="text/plain" id="motorFlare">
 // =====================================================================
