@@ -272,7 +272,11 @@
       "Nuestro método en 3 pasos": "Our method in 3 steps", "Cómo convertimos dos satélites distintos en un solo registro comparable": "How we turn two different satellites into one comparable record",
       "Contamos focos, no puntos.": "We count hotspots, not points.", "Seguimos sin cortes.": "No gaps.",
       "Nuestro método en 4 pasos": "Our method in 4 steps", "Satélite": "Satellite",
-      "Lo que hace FLARE": "What FLARE does", "Convenciones": "Legend", "Capas": "Layers", "en": "in",
+      "Lo que hace FLARE": "What FLARE does", "Convenciones": "Legend", "Capas": "Layers",
+      "MODIS · Terra y Aqua": "MODIS · Terra and Aqua", "VIIRS · Suomi NPP y NOAA-20": "VIIRS · Suomi NPP and NOAA-20",
+      "focos de fuego detectados desde el espacio sobre Colombia (2001–hoy)": "fire hotspots detected from space over Colombia (2001–today)",
+      "Datos: NASA FIRMS": "Data: NASA FIRMS", "Continentes del globo de la portada: Natural Earth (dominio público).": "Continents on the home page globe: Natural Earth (public domain).",
+      "La Tierra vista desde el espacio con Colombia al frente: cada punto naranja es un lugar donde los satélites de la NASA detectaron fuego": "The Earth seen from space with Colombia in front: each orange dot is a place where NASA satellites detected fire", "en": "in",
       "Busca tu municipio": "Find your municipality", "Escribe su nombre en el buscador": "Type its name in the search box",
       "Un año, un mes o los 25 años": "One year, one month or all 25 years",
       "Haz clic en el mapa": "Click on the map", "Mira sus cifras en el panel": "See its numbers in the panel",
@@ -1704,7 +1708,21 @@
 
     /* ====== INICIO: secciones con íconos (historia de FLARE) ====== */
     .portada { position: relative; grid-template-rows: minmax(calc(100vh - 104px), auto); min-height: 0; }
-    .portada > .portada-texto, .portada > .portada-cal { position: relative; z-index: 1; }
+    .portada > .portada-texto, .portada > .portada-cal, .portada > .portada-globo { position: relative; z-index: 1; }
+    .portada-globo { margin: 0; position: relative; cursor: pointer; align-self: center; }
+    .portada-globo canvas { display: block; width: 100%; height: 520px;
+      -webkit-mask-image: radial-gradient(closest-side, #000 82%, transparent 100%); mask-image: radial-gradient(closest-side, #000 82%, transparent 100%); }
+    .globo-chips { position: absolute; top: 6px; right: 6px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: none; }
+    .gchip { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #e7e4dc; padding: 6px 12px; border-radius: 999px;
+      background: rgba(20,16,14,.6); border: 1px solid rgba(255,255,255,.12); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+    .gchip i { width: 18px; height: 2px; border-radius: 2px; }
+    .gc-modis { background: #c9a54c; box-shadow: 0 0 8px #c9a54c; }
+    .gc-viirs { background: #7fc8ff; box-shadow: 0 0 8px #7fc8ff; }
+    .globo-pie { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-top: 4px; font-size: 13px; color: var(--gris); line-height: 1.45; }
+    .globo-pie b { font-family: var(--display); font-variation-settings: "wdth" 78; font-size: 22px; font-weight: 800;
+      background: linear-gradient(90deg, #ffb347, #ff6a3d 55%, var(--dorado)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .globo-fuente { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: #8f8a80; }
+    @media (max-width: 600px) { .gchip { font-size: 11px; padding: 5px 10px; } .globo-chips { top: 0; right: 0; } }
     .brasas { position: absolute; left: 0; right: 0; top: 0; height: calc(100vh - 104px); width: 100%; pointer-events: none; z-index: 0;
               -webkit-mask-image: linear-gradient(#000 75%, transparent); mask-image: linear-gradient(#000 75%, transparent); }
     .landing { grid-column: 1 / -1; position: relative; z-index: 1; padding: 30px 0 20px 80px; display: flex; flex-direction: column; gap: 90px; }
@@ -2039,12 +2057,15 @@
         <div><dt>3 %</dt><dd>de error en la validación</dd></div>
       </dl>
     </div>
-    <figure class="portada-cal" id="portadaCal" aria-label="Calendario del fuego en Colombia, mes a mes, de 2001 a hoy">
-      <div class="pc-meses" id="pcMeses"></div>
-      <div class="pc-rejilla" id="pcRejilla"></div>
-      <figcaption class="pc-pie">
-        <span>Cada cuadro es un mes de fuego en Colombia. Más brillante, más focos. Haz clic en uno para verlo en el mapa.</span>
-        <span class="pc-escala" aria-hidden="true"><i></i>poco <b></b> mucho</span>
+    <figure class="portada-globo" id="portadaGlobo" aria-label="La Tierra vista desde el espacio con Colombia al frente: cada punto naranja es un lugar donde los satélites de la NASA detectaron fuego">
+      <canvas id="globo" aria-hidden="true"></canvas>
+      <div class="globo-chips" aria-hidden="true">
+        <span class="gchip"><i class="gc-modis"></i>MODIS · Terra y Aqua</span>
+        <span class="gchip"><i class="gc-viirs"></i>VIIRS · Suomi NPP y NOAA-20</span>
+      </div>
+      <figcaption class="globo-pie">
+        <span><b id="globoFocos">—</b> <span>focos de fuego detectados desde el espacio sobre Colombia (2001–hoy)</span></span>
+        <span class="globo-fuente">Datos: NASA FIRMS</span>
       </figcaption>
     </figure>
     <canvas class="brasas" id="brasas" aria-hidden="true"></canvas>
@@ -2608,6 +2629,7 @@
             <li>Focos de fuego: NASA FIRMS — MODIS Collection 6.1 (Terra y Aqua), VIIRS S-NPP 375 m y VIIRS NOAA-20 375 m.</li>
             <li>Límites de municipios y departamentos: geoBoundaries (William &amp; Mary geoLab).</li>
             <li>Mapas base: Esri. Librerías: Leaflet, Leaflet.heat y Apache ECharts.</li>
+            <li>Continentes del globo de la portada: Natural Earth (dominio público).</li>
           </ul>
           <div class="chips-tec"><span>HTML</span><span>CSS</span><span>JavaScript</span><span>Python</span><span>Leaflet</span><span>ECharts</span><span>GitHub Pages</span></div>
         </div>
@@ -4341,88 +4363,219 @@
   </script>
   <script type="text/x-flare">
   // =====================================================================
-  // PORTADA: el calendario real del fuego en Colombia (2001–hoy), mes a mes
-  // Solo muestra datos que ya existen: no cambia ningún cálculo.
+  // PORTADA: la Tierra desde el espacio, con Colombia al frente.
+  // Los puntos naranjas son las celdas con fuego de los datos de NASA FIRMS (los mismos del mapa).
+  // Dos órbitas: MODIS (Terra/Aqua) y VIIRS (Suomi NPP/NOAA-20). Solo dibujo: no cambia ningún cálculo.
+  // Continentes: Natural Earth (dominio público), en una grilla de puntos.
   // =====================================================================
   (() => {
-    const cont = document.getElementById("portadaCal");
-    if (!cont) return;
-    const EN = window.IDIOMA === "en";
-    const CORTOS = EN ? ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"] : ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-    const LARGOS = EN ? ["January","February","March","April","May","June","July","August","September","October","November","December"] : MESES;
-    const ultimo = Number(DATOS_MAPA.meta.ultimaFecha.slice(5, 7));
-    // focos de todo el país por año y mes
-    const s = new Float64Array(NA * 12);
     let total = 0;
-    for (const c of celdas) for (const [a, m, f] of c.serie) { s[a * 12 + m - 1] += f; total += f; }
+    const porCelda = celdas.map(c => { let s = 0; for (const e of c.serie) s += e[2]; total += s; return s; });
     document.getElementById("hechoFocos").textContent = fmt(total);
-    const max = Math.max(...s);
-    // color según el puesto del mes entre todos los meses (así se distinguen meses tranquilos y meses de quemas)
-    const ordenados = Array.from(s.slice(0, (NA - 1) * 12 + ultimo)).sort((x, y) => x - y);
-    const rango = v => { let lo = 0, hi = ordenados.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (ordenados[mid] < v) lo = mid + 1; else hi = mid; } return lo / (ordenados.length - 1); };
-    // rampa de brasa: carbón → ámbar → naranja → rojo
-    const RAMPA = [[44,44,48],[91,74,51],[168,116,46],[232,137,44],[242,90,42],[255,106,61]];
-    const color = t => {
-      const x = Math.min(.999, Math.max(0, t)) * (RAMPA.length - 1), i = Math.floor(x), f = x - i, a = RAMPA[i], b = RAMPA[i + 1];
-      return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(",")})`;
-    };
-    document.getElementById("pcMeses").innerHTML = "<span></span>" + CORTOS.map(m => `<span>${m[0]}</span>`).join("");
-    let html = "", orden = 0;
-    for (let a = 0; a < NA; a++) {
-      const año = A0 + a;
-      let fila = `<span class="pc-año${año % 5 === 0 || a === NA - 1 ? " fuerte" : ""}">${año % 5 === 0 || a === 0 || a === NA - 1 ? año : ""}</span>`;
-      for (let m = 1; m <= 12; m++) {
-        if (a === NA - 1 && m > ultimo) { fila += `<span class="pc-c vacia"></span>`; continue; }
-        const v = s[a * 12 + m - 1], t = Math.pow(rango(v), 1.6), col = color(t);
-        const brillo = t > .7 ? `0 0 ${Math.round(4 + (t - .7) * 50)}px ${col}` : "none";
-        fila += `<button class="pc-c" data-a="${a}" data-m="${m}" style="--c:${col}; --g:${brillo}; --d:${(orden++ * 6) + 150}ms"
-                  aria-label="${LARGOS[m - 1]} ${año}: ${fmt(v)}"></button>`;
-      }
-      html += `<div class="pc-fila">${fila}</div>`;
-    }
-    document.getElementById("pcRejilla").innerHTML = html;
+    const fig = document.getElementById("portadaGlobo"), cv = document.getElementById("globo");
+    if (!fig || !cv) return;
+    document.getElementById("globoFocos").textContent = fmt(total);
+    const ctx = cv.getContext("2d");
+    const RAD = Math.PI / 180;
+    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const movil = window.matchMedia("(max-width: 700px)").matches;
 
-    // etiqueta al pasar el mouse
-    const tip = document.createElement("div");
-    tip.className = "cal-tip"; tip.setAttribute("role", "tooltip");
-    document.body.appendChild(tip);
-    const promMes = m => { let t = 0; for (let a = 0; a < NA - 1; a++) t += s[a * 12 + m - 1]; return t / (NA - 1); };
-    cont.addEventListener("mousemove", e => {
-      const c = e.target.closest(".pc-c[data-m]");
-      if (!c) { tip.classList.remove("visible"); return; }
-      const a = Number(c.dataset.a), m = Number(c.dataset.m), v = s[a * 12 + m - 1], ref = promMes(m);
-      const dif = ref >= 1 ? (v / ref - 1) * 100 : 0;
-      tip.innerHTML = `<b>${LARGOS[m - 1]} ${A0 + a}</b><br>${fmt(v)} ${EN ? "fire hotspots" : "focos de fuego"}` +
-        (Math.abs(dif) >= 10 ? `<br><span class="${dif > 0 ? "t-mal" : "t-bien"}">${dif > 0 ? "▲" : "▼"} ${Math.abs(Math.round(dif))} % ${EN ? (dif > 0 ? "more than a normal " : "less than a normal ") + LARGOS[m - 1] : (dif > 0 ? "más" : "menos") + " que un " + LARGOS[m - 1].toLowerCase() + " normal"}</span>` : "") +
-        `<br><span class="t-pista">${EN ? "Click to see it on the map" : "Clic para verlo en el mapa"}</span>`;
-      tip.classList.add("visible");
-      const w = tip.offsetWidth, hh = tip.offsetHeight;
-      let x = e.clientX + 16, y = e.clientY + 16;
-      if (x + w > innerWidth - 8) x = e.clientX - w - 16;
-      if (y + hh > innerHeight - 8) y = e.clientY - hh - 16;
-      tip.style.left = x + "px"; tip.style.top = y + "px";
-    });
-    cont.addEventListener("mouseleave", () => tip.classList.remove("visible"));
-    window.addEventListener("scroll", () => tip.classList.remove("visible"), { passive: true });
-    // clic: ver ese mes en el mapa (usa los mismos filtros de siempre)
-    cont.addEventListener("click", e => {
-      const c = e.target.closest(".pc-c[data-m]");
-      if (!c) return;
-      tip.classList.remove("visible");
-      selAño.value = String(A0 + Number(c.dataset.a));
-      selMes.value = c.dataset.m;
-      aplicarFiltros();
-      location.hash = "#mapa";
-    });
-    // encender una sola vez, cuando la portada se ve por primera vez
-    const encender = () => {
-      if (cont.classList.contains("encendido")) return;
-      if (location.hash && location.hash !== "#inicio") return;
-      requestAnimationFrame(() => cont.classList.add("encendido"));
+    // --- puntos de tierra (grilla casi uniforme sobre la esfera) ---
+    const MASK = "+P//P/z///8H/8f//3/A/87///+A/4f+////gP8f8P///z+A/x/A/////wfg/z+A/////z8AkPgPwP////9/AAAgcQD8/////38AAGDwAOD///3//w8AAABwAAD6//P//x8AAAAABAAAgP/z//8PAAAAABAAAADAP/7/fwAAAAAAEAAAAAAc4P3+AQAAAAAACAAAAAAIAIAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAADAAQAAAAAAAAAAAAAAAAAAAAAAAAAAgAMAAAAAAAAAAAAAAAAAAAAAAAAAAADgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAACAAAAAAAAAAAAAAAAAAADADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACADwAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAAD4AAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAD8AAAAAAAAAAAAAAAAAAAAAAGAAQAAAAAAAACADwAAAAAAAAAAAAAAAAAAAMAAgAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAAAUAAAAAAAAAAD4BwAAAAAAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAPAfAAAAAAAAAAAAAAAAAAAAAA8AwAAAAAAAAAAAAP8HAAAAAAAAAAAAAAAAAAAA4A8AEAAAAAAAAAAAAP8HAAAAAAAAAAAAAAAAAAAAAH8AAAAAAAAAAAAAAOC/AQAAAAAACAAAAAAAAABgAOAfAAAAAAAAAAAAAADw/wEAAAAAAPgAAAAAAAAAwA/QfwAAAAAAAAAAAAAAgP8fAAAAAADAPwAAAAAAAAD4A/8fAAAAAAAAAAAAAADg/w8AAAAAAOA/AAAAAAAAAPj//z8AAAAAAAAAAAAAAID/fwAAAAAAgP8BAAAAAAAAwP///wMAAAAAAAAAAAAAAPD/HwAAAAAA4P8AAAAAAAAA8P///wEAAAAAAAAAAAAAAOD/HwAAAAAA8P8BAAAAAAAA4P///wMAAAAAAAAAAAAAAAD//wAAAAAAAP8fAAAAAAAAAP7//38AAAAAAAAAAAAAAADg/z8AAAAAAMD/DxAAAAAAAAD///8/AAAAAAAAAAAAAAAA4P//AAAAAADA/z9wAAAAAAAA/v//PwAAAAAAAAAAAAAAAAD//z8AAAAAAPz/AwcAAAAAAMD///8HAAAAAAAAAAAAAAAAwP//HwAAAACA///AAwAAAAAAwP///wAgAAAAAAAAAAAAAADA//8fAAAAAID//4ADAAAAAAAA/v//AQAAAAAAAAAAAAAAAID//38AAAAAAP//Ax4AAAAAAADA//8DAAAAAAAAAAAAAAAAAPz//wcAAAAA8P//4AMAAAAAAAD4/z8AAIAAAAAAAAAAAAAAgP///wEAAAAA/P//8AAAAAAAAAD8fx4AAAAAAAAAAAAAAAAA4P///wEAAAAA/P//wQAAAAAAAADwPxwAQAAAAAAAAAAAAAAA4P///wcAAAAA8P//BwYAAAAAAAAA++AAAAAAAAAAAAAAAAAAAP///38AAAAAAP//fwAAAAAAAAAAAB8CAAAAAAAAAAAAAAAAAPD///8PAAAAAMD//wcAAAAAAAAAAMBCAAAAAAAAAAAAAAAAAAD+////AwAAAADw//8DAAAAAAAAAAAAAAAgAAAAAAAAAAAAAACA/////wcAAAAA+P//AQAAAAAAAABEAAAGCAAAAAAAAAAAAAAAgP////8PAAAAAPj//wEAAAAAAADAJAJwBgAAAAAAAAAAAAAAAAD/////HwAAAADg//8HAAAAAAAAfAAA4A8AAAAAAAAAAAAAAAAA/v///38AAAAAwP//DwAAAAAAABAAAMi/EQAAAAAAAAAAAAAAAPj/////AAAAAAD//38AAAAAAAAwABQA/xAAAAAAAAAAAAAAAACA/////wEAAAAA/P//BwAAAAAAwANCBP4BAAAAAAAAAAAAAAAAAPz///8AAAAAAOD//38AAAAAAAAePgeQAwAAAAAAAAAAAAAAAADA////BwAAAAAA////DwAAAAAA4PBzwAEAAAAAAAAAAAAAAAAAAPz//wcAAAAAAOD///8BAAAAAAAHf4AAAAAAAAAAAAAAAAAAAACA//9/AAAAAAAA/v//PwAAAAAAePAPCAAAAAAAAAAAAAAAAAAAAPD//wcAAAAAAOD///8HAAAAAMANfAAAAAAAAAAAAAAAAAAAAAAA//8/AAAAAAAA/////wAAAAAANoADAAAAAAAAAAAAAAAAAAAAAPj//wAAAAAwAP////8PAAAAAJgBOAAAAAAAAAAAAAAAAAAAAADA/38BAAAA4H/8////fwAAAAEABkAgAAAAAAAAAAAAAAAAAAAAAP//AAAAAMD///////8BAAAMAAQAgAEAAAAAAAAAAAAAAAAAAGD+/wAAAACA////////BwAAGgAMAIADAAAAAAAAAAAAAAAAAAAwcP8AAAAAgP///////w8AAAYACAOIAAAAAAAAAAAAAAAAAAAAGPCDAAAAAOD//////x8HAAAHAMQDaAAAAAAAAAAAAAAAAAAAAAZgAAAAAAD8//////8HAADgAAD5ACAAAAAAAAAAAAAAAAAAAPAAAAAAAADA//////+/AQAAHgDQH4ABAAAAAAAAAAAAAAAAAOAPAAAAAAAA/P//////fQAA8ACA/wACAAAAAAAAAAAAAAAAAIA/AAAAAAAA8P//////8QcA4AMA/wEEAAAAAAAAAAAAAAAAAPwHAAAAAAAA8P//////+Q8A8AfgfwAGAAAAAAAAAAAAAAAAwP8DBAQAAAAA+P////8//w8A/gP8D4AAAAAAAAAAAAAAAAAA/nAAHAAAAACA///////x/wHgP+B/AgAAAAAAAAAAAAAAAAD4gwEGAAAAAAD+/////+P/B8D/wf8JAAAAAAAAAAAAAAAAAPADAAMAAAAAAP//////8/8P8P/h/w0AAAAAAAAAAAAAAAAA/AA4AAAAAACA/////3/+/wH+////HwEAAAAAAAAAAAAAAOAfAAAAAAAAAPj/////8/8H/P////8JAAAAAAAAAAAAAADIPwAEAAAAAADw//////s/Yvz/////AQAAAAAAAAAAAAAA8h8AAwAAAAAA+P///3/+B///////fwAAAAAAAAAAAAAAsP8BMAAAAAAAgP/////7H////////wMAAAAAAAAAAAAAQP8PYAAAAAAAAPz////9n////////wcAAAAAAAAAAAAAyP8/DgAAAAAAAP//////+///////fwAAAAAAAAAAAABA/v9/AAAAAAAA+P8fn/3/////////AQAAAAAAAAAAAMD///8AAAAAAAD8/4cB/v///////z8QAAAAAAAAAAAA/P//HwAAAAAAgP8PAOD/////////AAEAAAAAAAAAAPz///8AAAAAAAD/BwDk////////P8QHAAAAAAAAAMD///8fAAAAAAAA/gAA/v///////8NwAAAAAAAAAAD///9/AAAAAADwAAjx/+f//////0dgAAAAAAAAAMD///8/AAAAAAA/ADD/P/z/////BwMEAAAAAAAAAP////8AAAAAAHwgMP9//P////8vAQYAAAAAAADA////fwAAAACAH+Su/4///////z8gAAAAAAAAAP7///8DAAAAAH9gfoTH//////8/EAAAAAAAAID/////AAAAAOBf5g94/P//////DwcAAAAAAAD+////FwAAAAD88w98/v//////jwAAAAAAAID/////DwAAAMC//+TH//////9/AAAAAAAAAP////8DAAAA4P///+f//////58AAAAAAADw////Hw8AAID///////////9/AAAAAAAA6P///xcHAACA////////////bwAAAAAAoP////8LAACA/P//////////LwAAAAAA8P//7/8BAAB4////////////AAAAAADg///P/wEAADr//////////z8QAAAAgP////4PAACY8P////////8XMAAAAYD//z//AQAAGAL///////8/gAMAEAD+/x/4AwAAGBT///////8/wAEAGMD//4A/AACAgfn///////8AAwAY8P9/wAsAAAB0/P//////HzAA9OL//wEHAAAA/PL///////84AP7//z9wAAMAwPP////////zAfz//z+KwAEA8Pz///////9/xP///4rDAwTg/f///////0/+//9/Dz5wAO/+//////9/////D4sfDuCf////////+P//v4YfAPDff//////H/z+xDP4AwF/8/////+DPfMLBHwA8QP///9eAATx98B8ABqL//z8AADR78A8AANH/jwEAwLSDfwAAAv8FAAAAAPAPACDwAQAAQCr8AwAIPhgAgPD+BwAIBAAAAP4fBAAAAABw/iAABAAAqD9IIAAA8A8AAACAOQAAAA==";
+    const bytes = Uint8Array.from(atob(MASK), ch => ch.charCodeAt(0));
+    const tierra = [];
+    let k = 0;
+    for (let lat = -84; lat <= 84.0001; lat += 1.2) {
+      const n = Math.max(1, Math.round(360 * Math.cos(lat * RAD) / 1.2));
+      for (let i = 0; i < n; i++, k++) if (bytes[k >> 3] & (1 << (k & 7))) tierra.push(lat, -180 + (i + .5) * 360 / n);
+    }
+    const unit = (lat, lon) => [Math.cos(lat * RAD) * Math.cos(lon * RAD), Math.cos(lat * RAD) * Math.sin(lon * RAD), Math.sin(lat * RAD)];
+    const T = new Float32Array(tierra.length / 2 * 3);
+    for (let i = 0; i < tierra.length / 2; i++) T.set(unit(tierra[2 * i], tierra[2 * i + 1]), 3 * i);
+
+    // --- Colombia (contorno) y celdas con fuego ---
+    const CO = [[-71.32,11.86],[-71.54,11.77],[-71.72,11.73],[-71.96,11.67],[-72.25,11.2],[-72.45,11.11],[-72.57,10.98],[-72.69,10.84],[-72.87,10.49],[-72.94,10.2],[-72.97,10.03],[-73.01,9.79],[-73.06,9.67],[-73.14,9.55],[-73.22,9.44],[-73.3,9.32],[-73.37,9.19],[-73.19,9.19],[-73.06,9.26],[-72.96,9.14],[-72.8,9.11],[-72.73,8.85],[-72.67,8.63],[-72.53,8.49],[-72.42,8.38],[-72.36,8.15],[-72.45,7.97],[-72.46,7.81],[-72.48,7.61],[-72.44,7.45],[-72.3,7.39],[-72.16,7.25],[-72.08,7.1],[-71.89,6.99],[-71.62,7.03],[-71.46,7.03],[-71.22,6.99],[-71.01,6.99],[-70.81,7.08],[-70.66,7.08],[-70.54,7.04],[-70.39,6.97],[-70.27,6.95],[-70.13,6.95],[-69.9,6.7],[-69.74,6.49],[-69.59,6.32],[-69.44,6.13],[-69.31,6.14],[-69.09,6.18],[-68.94,6.2],[-68.74,6.16],[-68.47,6.16],[-68.14,6.2],[-67.94,6.24],[-67.73,6.28],[-67.57,6.24],[-67.47,6.12],[-67.47,5.93],[-67.58,5.83],[-67.63,5.71],[-67.64,5.56],[-67.69,5.45],[-67.82,5.27],[-67.8,5.13],[-67.81,4.93],[-67.86,4.67],[-67.86,4.51],[-67.8,4.38],[-67.78,4.2],[-67.73,4.09],[-67.66,3.86],[-67.55,3.73],[-67.35,3.46],[-67.34,3.34],[-67.51,3.19],[-67.83,2.89],[-67.67,2.8],[-67.57,2.69],[-67.39,2.56],[-67.25,2.43],[-67.22,2.28],[-67.17,2.14],[-67.13,2],[-67.04,1.82],[-66.99,1.68],[-66.93,1.46],[-66.9,1.29],[-67.07,1.18],[-67.09,1.4],[-67.09,1.62],[-67.21,1.84],[-67.32,2.03],[-67.46,2.12],[-67.61,2.04],[-67.71,1.92],[-67.82,1.79],[-67.94,1.75],[-68.08,1.86],[-68.19,1.99],[-68.26,1.85],[-68.18,1.72],[-68.44,1.72],[-68.68,1.72],[-68.91,1.72],[-69.12,1.72],[-69.32,1.72],[-69.47,1.76],[-69.65,1.74],[-69.8,1.71],[-69.85,1.54],[-69.85,1.31],[-69.85,1.06],[-69.72,1.06],[-69.57,1.07],[-69.44,1.04],[-69.31,1.05],[-69.22,0.96],[-69.17,0.8],[-69.15,0.66],[-69.28,0.63],[-69.42,0.7],[-69.56,0.7],[-69.72,0.65],[-69.86,0.6],[-69.99,0.59],[-70.06,0.45],[-70.07,0.19],[-70.07,0.02],[-70.07,-0.14],[-69.92,-0.32],[-69.75,-0.45],[-69.63,-0.51],[-69.59,-0.64],[-69.61,-0.76],[-69.55,-0.88],[-69.45,-1],[-69.41,-1.15],[-69.43,-1.42],[-69.48,-1.62],[-69.51,-1.77],[-69.55,-2.02],[-69.6,-2.31],[-69.67,-2.67],[-69.73,-3.02],[-69.79,-3.35],[-69.85,-3.66],[-69.91,-4],[-69.95,-4.2],[-70.09,-4.09],[-70.2,-4],[-70.3,-3.84],[-70.42,-3.85],[-70.71,-3.79],[-70.62,-3.6],[-70.42,-3.29],[-70.29,-3.09],[-70.15,-2.86],[-70.07,-2.75],[-70.16,-2.64],[-70.29,-2.55],[-70.42,-2.49],[-70.58,-2.42],[-70.71,-2.34],[-70.91,-2.22],[-71.11,-2.25],[-71.3,-2.33],[-71.45,-2.29],[-71.56,-2.22],[-71.75,-2.15],[-71.87,-2.23],[-71.98,-2.33],[-72.14,-2.38],[-72.3,-2.41],[-72.5,-2.4],[-72.63,-2.35],[-72.81,-2.41],[-72.94,-2.39],[-73.07,-2.31],[-73.17,-2.21],[-73.13,-2.08],[-73.18,-1.88],[-73.27,-1.77],[-73.44,-1.74],[-73.53,-1.64],[-73.52,-1.45],[-73.61,-1.32],[-73.74,-1.21],[-73.86,-1.2],[-73.99,-1.1],[-74.18,-1],[-74.28,-0.93],[-74.33,-0.81],[-74.37,-0.69],[-74.47,-0.52],[-74.56,-0.43],[-74.69,-0.34],[-74.78,-0.24],[-74.95,-0.19],[-75.05,-0.12],[-75.18,-0.04],[-75.46,-0.04],[-75.62,0.06],[-75.78,0.09],[-75.88,0.15],[-75.97,0.25],[-76.07,0.35],[-76.27,0.44],[-76.39,0.4],[-76.43,0.26],[-76.6,0.24],[-76.73,0.27],[-76.92,0.27],[-77.11,0.36],[-77.29,0.36],[-77.42,0.42],[-77.47,0.64],[-77.6,0.69],[-77.7,0.84],[-77.83,0.83],[-78.04,0.9],[-78.18,0.97],[-78.31,1.05],[-78.51,1.2],[-78.68,1.28],[-78.83,1.43],[-79.03,1.62],[-78.96,1.75],[-78.79,1.85],[-78.58,1.77],[-78.55,1.92],[-78.63,2.06],[-78.62,2.31],[-78.53,2.42],[-78.42,2.48],[-78.3,2.51],[-78.12,2.49],[-77.99,2.57],[-77.9,2.7],[-77.78,2.79],[-77.67,2.88],[-77.7,3.01],[-77.56,3.08],[-77.47,3.23],[-77.42,3.34],[-77.32,3.47],[-77.24,3.59],[-77.08,3.91],[-77.21,3.87],[-77.25,4.04],[-77.36,3.94],[-77.43,4.06],[-77.4,4.2],[-77.52,4.26],[-77.41,4.35],[-77.33,4.47],[-77.29,4.72],[-77.34,4.84],[-77.37,5.08],[-77.36,5.22],[-77.4,5.42],[-77.53,5.54],[-77.32,5.68],[-77.25,5.78],[-77.34,6],[-77.47,6.18],[-77.4,6.28],[-77.36,6.5],[-77.44,6.69],[-77.6,6.84],[-77.68,6.96],[-77.8,7.14],[-77.9,7.23],[-77.83,7.44],[-77.74,7.54],[-77.77,7.67],[-77.62,7.56],[-77.35,7.71],[-77.35,7.84],[-77.22,7.93],[-77.28,8.19],[-77.39,8.35],[-77.48,8.5],[-77.39,8.64],[-77.26,8.49],[-77.13,8.4],[-76.99,8.25],[-76.89,8.13],[-76.92,7.97],[-76.79,7.93],[-76.77,8.31],[-76.82,8.46],[-76.92,8.57],[-76.8,8.64],[-76.69,8.69],[-76.28,8.99],[-76.14,9.27],[-76.03,9.37],[-75.91,9.43],[-75.76,9.42],[-75.64,9.45],[-75.64,9.66],[-75.64,9.83],[-75.59,9.99],[-75.6,10.13],[-75.55,10.33],[-75.49,10.53],[-75.28,10.73],[-75.12,10.87],[-74.92,11.06],[-74.45,10.99],[-74.33,11],[-74.49,10.93],[-74.46,10.79],[-74.3,10.95],[-74.22,11.11],[-74.2,11.27],[-74.06,11.34],[-73.91,11.31],[-73.68,11.27],[-73.31,11.3],[-72.72,11.71],[-72.45,11.8],[-72.28,11.89],[-72.17,12.06],[-72.14,12.19],[-71.97,12.24],[-71.71,12.42],[-71.49,12.43],[-71.26,12.34],[-71.16,12.16],[-71.28,11.92]];
+    const C = CO.map(([lon, lat]) => unit(lat, lon));
+    const maxF = Math.max(...porCelda);
+    const fuego = celdas.map((c, i) => ({ u: unit(c.lat, c.lon), t: Math.pow(Math.log1p(porCelda[i]) / Math.log1p(maxF), 1.4) }))
+                        .filter(f => f.t > 0.05).sort((a, b) => a.t - b.t);
+    const brillantes = fuego.filter(f => f.t > .55);
+
+    // --- órbitas casi polares (como las de los satélites reales) ---
+    const orbita = (nodo, inc) => {
+      const n = [Math.sin(inc * RAD) * Math.sin(nodo * RAD), -Math.sin(inc * RAD) * Math.cos(nodo * RAD), Math.cos(inc * RAD)];
+      const a = [Math.cos(nodo * RAD), Math.sin(nodo * RAD), 0];
+      const b = [n[1] * a[2] - n[2] * a[1], n[2] * a[0] - n[0] * a[2], n[0] * a[1] - n[1] * a[0]];
+      return { a, b };
     };
-    if (document.getElementById("cargando")) document.addEventListener("flare-listo", () => setTimeout(encender, 250));
-    else encender();
-    window.addEventListener("hashchange", encender);
+    const ORB = [
+      { ...orbita(-120, 98.2), color: "201,165,76", vel: 0.00011, fase: 0.6, alto: 1.10 },   // MODIS
+      { ...orbita(-55, 98.7), color: "127,200,255", vel: 0.000085, fase: 2.4, alto: 1.16 },  // VIIRS
+    ];
+
+    // --- sprite de brillo para el fuego ---
+    const sprite = document.createElement("canvas"); sprite.width = sprite.height = 64;
+    const sg = sprite.getContext("2d"), gr = sg.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, "rgba(255,220,150,1)"); gr.addColorStop(.25, "rgba(255,130,50,.85)"); gr.addColorStop(.6, "rgba(255,80,30,.25)"); gr.addColorStop(1, "rgba(255,60,20,0)");
+    sg.fillStyle = gr; sg.fillRect(0, 0, 64, 64);
+
+    let W = 0, H = 0, dpr = 1;
+    function medir() {
+      dpr = Math.min(window.devicePixelRatio || 1, movil ? 1.25 : 1.75);
+      W = Math.max(200, fig.clientWidth); H = Math.round(W * 0.92);
+      cv.style.height = H + "px";
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    }
+
+    let l0 = -74, p0 = 5, R = 1, cx = 0, cy = 0;
+    const cl = Math.cos, sl = Math.sin;
+    let ca, sa, cb, sb;
+    const vista = (u, out) => {   // rota a la vista: devuelve x, y (pantalla) y z (profundidad)
+      const x1 = u[0] * ca + u[1] * sa, y1 = -u[0] * sa + u[1] * ca, z1 = u[2];
+      out[0] = y1; out[1] = -x1 * sb + z1 * cb; out[2] = x1 * cb + z1 * sb; return out;
+    };
+    const v = [0, 0, 0];
+    const grupos = [[], [], [], [], [], []];
+    const pings = [];
+    let inicio = 0;
+
+    function cuadro(t) {
+      if (!inicio) inicio = t;
+      const e = quieto ? 1 : Math.min(1, (t - inicio) / 3800), suave = 1 - Math.pow(1 - e, 3);
+      // de la Tierra entera a Colombia: acercamiento y giro
+      l0 = -74 - (1 - suave) * 70 + (quieto ? 0 : Math.sin(t * 0.00009) * 6 * suave);
+      p0 = 5 + (1 - suave) * 10;
+      R = W * (0.28 + 0.16 * suave);
+      cx = W / 2; cy = H / 2;
+      ca = cl(l0 * RAD); sa = sl(l0 * RAD); cb = cl(p0 * RAD); sb = sl(p0 * RAD);
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      // atmósfera
+      const at = ctx.createRadialGradient(cx, cy, R * .9, cx, cy, R * 1.25);
+      at.addColorStop(0, "rgba(255,120,60,.18)"); at.addColorStop(.35, "rgba(120,170,255,.08)"); at.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = at; ctx.beginPath(); ctx.arc(cx, cy, R * 1.25, 0, 7); ctx.fill();
+      // esfera
+      const es = ctx.createRadialGradient(cx - R * .35, cy - R * .45, R * .1, cx, cy, R);
+      es.addColorStop(0, "#2a2019"); es.addColorStop(.7, "#15110f"); es.addColorStop(1, "#0c0a09");
+      ctx.fillStyle = es; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(255,170,90,.25)"; ctx.lineWidth = 1.2; ctx.stroke();
+
+      // órbitas: mitad de atrás
+      for (const o of ORB) dibujarOrbita(o, t, false);
+
+      // tierra en puntos
+      // (agrupados por brillo: pocos cambios de color = rápido)
+      const tam = Math.max(1.3, R * 0.0072), med = tam / 2;
+      for (const g of grupos) g.length = 0;
+      for (let i = 0; i < T.length; i += 3) {
+        const u0 = T[i], u1 = T[i + 1], u2 = T[i + 2];
+        const x1 = u0 * ca + u1 * sa, z = x1 * cb + u2 * sb;
+        if (z <= 0.02) continue;
+        const sx = cx + R * (-u0 * sa + u1 * ca), sy = cy - R * (-x1 * sb + u2 * cb);
+        grupos[Math.min(5, (z * 6) | 0)].push(sx - med, sy - med);
+      }
+      for (let gI = 0; gI < 6; gI++) {
+        const g = grupos[gI]; if (!g.length) continue;
+        ctx.fillStyle = `rgba(214,190,150,${(0.10 + 0.32 * (gI + .5) / 6).toFixed(3)})`;
+        ctx.beginPath();
+        for (let j = 0; j < g.length; j += 2) ctx.rect(g[j], g[j + 1], tam, tam);
+        ctx.fill();
+      }
+      // contorno de Colombia
+      ctx.beginPath();
+      for (let i = 0; i < C.length; i++) { vista(C[i], v); const x = cx + R * v[0], y = cy - R * v[1]; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.closePath();
+      ctx.fillStyle = "rgba(201,165,76,.07)"; ctx.fill();
+      ctx.strokeStyle = "rgba(233,205,134,.75)"; ctx.lineWidth = 1.3; ctx.stroke();
+
+      // fuego (datos de NASA FIRMS)
+      ctx.globalCompositeOperation = "lighter";
+      const enciende = quieto ? 1 : Math.min(1, Math.max(0, ((t - inicio) - 1800) / 1600));
+      const base = Math.max(1.6, R * 0.0065);
+      for (const f of fuego) {
+        if (f.t > enciende * 1.05 + .05 && enciende < 1) continue;
+        vista(f.u, v); if (v[2] <= 0) continue;
+        const s = base * (0.5 + 1.5 * f.t), x = cx + R * v[0], y = cy - R * v[1];
+        ctx.globalAlpha = 0.08 + 0.42 * f.t * f.t;
+        ctx.drawImage(sprite, x - s, y - s, 2 * s, 2 * s);
+      }
+      ctx.globalAlpha = 1;
+      // destellos: detecciones cuando pasa un satélite
+      for (let i = pings.length - 1; i >= 0; i--) {
+        const pg = pings[i], edad = (t - pg.t0) / 1400;
+        if (edad >= 1) { pings.splice(i, 1); continue; }
+        vista(pg.u, v); const x = cx + R * v[0], y = cy - R * v[1];
+        ctx.strokeStyle = `rgba(255,200,120,${(1 - edad) * .8})`; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(x, y, 3 + edad * 22, 0, 7); ctx.stroke();
+      }
+      ctx.globalCompositeOperation = "source-over";
+
+      // órbitas: mitad de adelante y satélites
+      for (const o of ORB) dibujarOrbita(o, t, true);
+    }
+
+    function pos(o, th, out) {
+      const c = Math.cos(th), s = Math.sin(th);
+      out[0] = (o.a[0] * c + o.b[0] * s) * o.alto; out[1] = (o.a[1] * c + o.b[1] * s) * o.alto; out[2] = (o.a[2] * c + o.b[2] * s) * o.alto;
+      return out;
+    }
+    const tmp = [0, 0, 0], vv = [0, 0, 0];
+    function dibujarOrbita(o, t, adelante) {
+      const N = 180;
+      ctx.lineWidth = 1.4;
+      let prev = null;
+      for (let i = 0; i <= N; i++) {
+        const th = i / N * 2 * Math.PI;
+        vista(pos(o, th, tmp), vv);
+        const x = cx + R * vv[0], y = cy - R * vv[1];
+        const tapado = vv[2] < 0 && Math.hypot(vv[0], vv[1]) < 1;
+        const frente = vv[2] >= 0;
+        if (prev && frente === adelante && !tapado) {
+          ctx.strokeStyle = `rgba(${o.color},${adelante ? .55 : .18})`;
+          ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(x, y); ctx.stroke();
+        }
+        prev = [x, y];
+      }
+      if (!adelante) return;
+      // satélite con estela
+      const th = (quieto ? 1.2 : t * o.vel) + o.fase;
+      for (let j = 14; j >= 0; j--) {
+        vista(pos(o, th - j * 0.012, tmp), vv);
+        if (vv[2] < 0 && Math.hypot(vv[0], vv[1]) < 1) continue;
+        const x = cx + R * vv[0], y = cy - R * vv[1];
+        ctx.fillStyle = `rgba(${o.color},${j ? (1 - j / 15) * .5 : 1})`;
+        ctx.beginPath(); ctx.arc(x, y, j ? 2 : 4.2, 0, 7); ctx.fill();
+        if (!j) {
+          ctx.strokeStyle = `rgba(${o.color},.5)`; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.stroke();
+          // ¿está sobre Colombia? entonces "detecta" fuego
+          const sub = pos(o, th, tmp), m = Math.hypot(sub[0], sub[1], sub[2]);
+          const lat = Math.asin(sub[2] / m) / RAD, lon = Math.atan2(sub[1], sub[0]) / RAD;
+          if (!quieto && Math.abs(lat - 4) < 14 && Math.abs(lon + 74) < 16 && brillantes.length && Math.random() < .25 && pings.length < 14)
+            pings.push({ u: brillantes[(Math.random() * brillantes.length) | 0].u, t0: t });
+        }
+      }
+    }
+
+    // --- animación: solo mientras la portada se ve ---
+    let corriendo = false, visible = true, ultimo = 0;
+    const activo = () => visible && !document.hidden && (!location.hash || location.hash === "#inicio");
+    function bucle(t) {
+      if (!activo()) { corriendo = false; return; }
+      if (t - ultimo >= 33) { ultimo = t; cuadro(t); }
+      requestAnimationFrame(bucle);
+    }
+    const arrancar = () => { if (quieto) { cuadro(performance.now()); return; } if (!corriendo && activo()) { corriendo = true; requestAnimationFrame(bucle); } };
+    new IntersectionObserver(en => { visible = en[0].isIntersecting; arrancar(); }).observe(fig);
+    document.addEventListener("visibilitychange", arrancar);
+    window.addEventListener("hashchange", arrancar);
+    let anchoPrevio = 0;
+    new ResizeObserver(() => { if (fig.clientWidth && Math.abs(fig.clientWidth - anchoPrevio) > 2) { anchoPrevio = fig.clientWidth; medir(); cuadro(performance.now()); } }).observe(fig);
+    medir();
+    const empezar = () => { inicio = 0; arrancar(); };
+    if (document.getElementById("cargando")) document.addEventListener("flare-listo", () => setTimeout(empezar, 200)); else empezar();
+    // clic: ir al mapa
+    fig.addEventListener("click", () => { location.hash = "#mapa"; });
   })();
   </script>
 
