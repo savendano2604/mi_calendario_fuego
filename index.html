@@ -427,6 +427,7 @@
       R("Subiendo datos hasta el (.+)…", (_, f) => `Uploading data through ${T(f)}…`),
       R("(\\d+) de " + M + " de (\\d{4})", (_, d, m, a) => `${mes(m)} ${d}, ${a}`),
       R("Actualizado desde la página de FLARE el (.+)", (_, f) => `Updated from the FLARE page on ${f}`),
+      R("Actualizado automáticamente el (.+)", (_, f) => `Updated automatically on ${f}`),
       R("NASA Space Apps Challenge (\\d+) · Datos: NASA FIRMS \\(MODIS \\+ VIIRS\\) · Actualizado al", (_, a) => `NASA Space Apps Challenge ${a} · Data: NASA FIRMS (MODIS + VIIRS) · Updated through`),
       R("Focos de fuego: NASA FIRMS — MODIS Collection (.+) \\(Terra y Aqua\\) y VIIRS S-NPP (.+) m\\.", (_, a, b) => `Fire hotspots: NASA FIRMS — MODIS Collection ${a} (Terra and Aqua) and VIIRS S-NPP ${b} m.`),
       R("Focos de fuego: NASA FIRMS — MODIS Collection (.+) \\(Terra y Aqua\\), VIIRS S-NPP (.+) m y VIIRS NOAA-20 (.+) m\\.", (_, a, b, c) => `Fire hotspots: NASA FIRMS — MODIS Collection ${a} (Terra and Aqua), VIIRS S-NPP ${b} m and VIIRS NOAA-20 ${c} m.`),

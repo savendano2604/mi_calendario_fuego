@@ -18,3 +18,18 @@
 ## Si se cambia el método en Python
 Hay que hacer el mismo cambio en `js/motor-flare.js` y copiarlo dentro de `index.html`
 (bloque `<script type="text/plain" id="motorFlare">`), y volver a comparar los resultados.
+
+## Actualización automática (GitHub Actions)
+- `.github/workflows/actualizar-datos.yml` corre **todos los días a las 7:23 a. m. (Colombia)** y también a mano
+  (pestaña **Actions → Actualizar datos de FLARE → Run workflow**).
+- Ejecuta `procesamiento/actualizar_automatico.js`, que pide a la **API de NASA FIRMS** los focos de
+  **VIIRS NOAA-20** en Colombia desde el día siguiente a la última fecha hasta **ayer** (UTC), y los procesa con
+  **`js/motor-flare.js`**, el mismo motor y el mismo modo ("Agregar días nuevos") que la página Datos.
+  Nada del método cambia.
+- Antes de guardar revisa que la fecha avance, que el total no baje y que ningún mes anterior cambie.
+  Si algo no cuadra, **no guarda nada** y la tarea queda en rojo (GitHub avisa por correo).
+- Después de subir `datos/mapa.js` le pide a GitHub Pages que publique (lo que sube una tarea automática
+  no lo dispara solo).
+- La clave de la NASA va en el secreto **`FIRMS_MAP_KEY`** (Settings → Secrets and variables → Actions).
+  Nunca se escribe en el código y en los registros sale como `***`.
+- La subida manual desde la página Datos sigue funcionando igual, como respaldo.

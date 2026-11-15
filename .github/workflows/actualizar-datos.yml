@@ -1,0 +1,54 @@
+# FLARE · Actualización automática de los datos
+# Todos los días a las 7:23 a. m. (hora de Colombia) pide a la NASA los focos de ayer,
+# los procesa con el mismo motor de la página y publica datos/mapa.js.
+# También se puede correr a mano: pestaña Actions → "Actualizar datos de FLARE" → Run workflow.
+name: Actualizar datos de FLARE
+
+on:
+  schedule:
+    - cron: "23 12 * * *"     # 12:23 UTC = 7:23 a. m. en Colombia
+  workflow_dispatch:
+
+permissions:
+  contents: write   # para guardar datos/mapa.js en este repositorio
+  pages: write      # para pedirle a GitHub Pages que publique la página
+
+concurrency:
+  group: actualizar-datos
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Traer el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Descargar y procesar los focos nuevos
+        id: proceso
+        env:
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+        run: node procesamiento/actualizar_automatico.js
+
+      - name: Guardar y publicar
+        if: steps.proceso.outputs.hasta != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HASTA: ${{ steps.proceso.outputs.hasta }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add datos/mapa.js
+          git commit -m "Actualización automática: datos hasta el $HASTA"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          # Lo que sube esta tarea no dispara GitHub Pages por sí solo: se lo pedimos
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/pages/builds" --silent \
+            && echo "GitHub Pages: publicación solicitada" \
+            || echo "::warning::No se pudo pedir la publicación a GitHub Pages; saldrá con el próximo cambio que se suba."
