@@ -241,7 +241,7 @@
       "Reporta cualquier incendio:": "Report any fire:", "o Bomberos": "or Firefighters",
       "📌 La alerta siempre mira": "📌 The alert always looks at", "el año en curso": "the current year",
       ": no cambia con el año o mes que elijas en el mapa, solo con el": ": it doesn't change with the year or month you choose on the map, only with the", "lugar": "place",
-      "¿Por qué este color?": "Why this color?", "Cada barra es un año, ordenado de menos a más fuego a esta misma fecha. Pasa el mouse por las barras.": "Each bar is a year, sorted from least to most fire by this same date. Hover over the bars.",
+      "¿Por qué este color?": "Why this color?", "¿Dónde queda este año?": "Where does this year stand?", "Cada barra es un año, ordenado de menos a más fuego a esta misma fecha. Pasa el mouse por las barras.": "Each bar is a year, sorted from least to most fire by this same date. Hover over the bars.",
       "← menos fuego": "← less fire", "más fuego →": "more fire →",
       "Verde: como la mayoría de los años o menos": "Green: like most years or less", "Amarillo: entre el 40 % de años con más fuego": "Yellow: among the 40 % of years with the most fire",
       "Rojo: entre el 20 % de años con más fuego": "Red: among the 20 % of years with the most fire",
@@ -1483,11 +1483,22 @@
     .escalera-titulo { font-size: 13.5px; color: var(--gris); margin-bottom: 14px; line-height: 1.5; }
     .escalera-titulo b { color: var(--blanco); }
     .escalera { position: relative; display: flex; align-items: flex-end; gap: 4px; height: 130px; padding-top: 26px; }
-    .escalera .eb { flex: 1; min-width: 0; height: var(--h); border-radius: 4px 4px 2px 2px; background: var(--c); opacity: .38; cursor: default;
+    .escalera .eb { flex: 1; min-width: 0; height: var(--h); border-radius: 4px 4px 2px 2px; background: rgba(255,255,255,.16); cursor: default;
                     transition: opacity .2s, transform .25s var(--resorte); position: relative; }
     .escalera { cursor: crosshair; }
-    .escalera .eb.sobre { opacity: .9; box-shadow: 0 0 0 1.5px rgba(255,255,255,.7); }
-    .escalera .eb.actual { opacity: 1; box-shadow: 0 0 0 2px #fff, 0 0 18px -2px var(--c); z-index: 2; }
+    .escalera .eb.sobre:not(.actual) { background: rgba(255,255,255,.34); }
+    .zonas { display: flex; gap: 4px; margin-top: 6px; }
+    .zonas .zn { height: 5px; border-radius: 3px; background: var(--c); opacity: .55; }
+    .zonas .zn-etq { display: flex; gap: 4px; margin-top: 4px; font-size: 11px; color: var(--gris); }
+    .zonas-etq { display: flex; margin-top: 3px; font-size: 11px; color: var(--gris); }
+    .zonas-etq span { text-align: center; }
+    .comp-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .comp-cifras > div { padding: 12px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+    .comp-cifras b { display: block; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+    .comp-cifras b.mal { color: #ff6b6b; } .comp-cifras b.bien { color: #3ccf7a; } .comp-cifras b.oro { color: var(--dorado); }
+    .comp-cifras span { font-size: 12px; color: var(--gris); line-height: 1.35; display: block; margin-top: 2px; }
+    @media (max-width: 700px) { .comp-cifras { grid-template-columns: 1fr 1fr; } }
+    .escalera .eb.actual { background: var(--c); box-shadow: 0 0 0 2px #fff, 0 0 18px -2px var(--c); z-index: 2; }
     .escalera .eb.actual::before { content: attr(data-etq); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
                     white-space: nowrap; font-size: 12px; font-weight: 800; color: var(--blanco); background: rgba(28,28,30,.9);
                     border: 1px solid rgba(255,255,255,.2); padding: 2px 8px; border-radius: 999px; }
@@ -1959,26 +1970,14 @@
             <span class="card-icono" data-icono="alerta"></span>
             <div><h3>Este año comparado con lo normal</h3><p>Focos del 1 de enero a hoy, frente a la misma fecha de otros años</p></div>
           </div>
-          <div class="semaforo-fila">
-            <div class="luces">
-              <span class="luz" data-luz="rojo"></span>
-              <span class="luz" data-luz="amarillo"></span>
-              <span class="luz" data-luz="verde"></span>
-            </div>
-            <div>
-              <div class="alerta-nivel" id="alertaNivel">—</div>
-              <p class="alerta-texto" id="alertaTexto"></p>
-            </div>
-          </div>
+          <div class="comp-cifras" id="compCifras"></div>
+          <p class="alerta-texto" id="alertaTexto"></p>
+          <div id="alertaNivel" hidden></div>
           <div class="escalera-bloque">
-            <div class="escalera-titulo"><b>¿Por qué este color?</b> Cada barra es un año, ordenado de menos a más fuego a esta misma fecha. Pasa el mouse por las barras.</div>
+            <div class="escalera-titulo"><b>¿Dónde queda este año?</b> Cada barra es un año, ordenado de menos a más fuego a esta misma fecha. Pasa el mouse por las barras.</div>
             <div class="escalera" id="escalera"></div>
+            <div class="zonas" id="zonas"></div>
             <div class="escalera-ejes"><span>← menos fuego</span><span>más fuego →</span></div>
-            <div class="escalera-leyenda">
-              <span><i style="--c:#3ccf7a"></i>Verde: como la mayoría de los años o menos</span>
-              <span><i style="--c:#ffc233"></i>Amarillo: entre el 40 % de años con más fuego</span>
-              <span><i style="--c:#ff3b3b"></i>Rojo: entre el 20 % de años con más fuego</span>
-            </div>
           </div>
         </div>
 
@@ -3373,12 +3372,19 @@
     document.getElementById("alertaNivel").textContent = nivel;
     const dif = mediana ? (actual / mediana - 1) * 100 : 0;
     dibujarEscalera(previos, actual, mediana);
+    const EN = window.IDIOMA === "en", L = (es, en) => EN ? en : es;
+    const difC = mediana ? (actual / mediana - 1) * 100 : 0;
+    document.getElementById("compCifras").innerHTML = mediana < 3 ? "" : `
+      <div><b class="oro">${fmt(actual)}</b><span>${L(`focos en ${AÑO_FIN}, hasta el ${fechaHoyTexto}`, `hotspots in ${AÑO_FIN} so far`)}</span></div>
+      <div><b>${fmt(mediana)}</b><span>${L("en un año normal, a la misma fecha", "in a normal year, by the same date")}</span></div>
+      <div><b class="${difC > 10 ? "mal" : difC < -10 ? "bien" : ""}">${Math.abs(difC) < 10 ? "≈" : (difC > 0 ? "▲" : "▼")} ${Math.abs(Math.round(difC))} %</b><span>${Math.abs(difC) < 10 ? L("casi igual que lo normal", "about the same as normal") : difC > 0 ? L("más fuego que lo normal", "more fire than normal") : L("menos fuego que lo normal", "less fire than normal")}</span></div>
+      <div><b>#${puesto} <small style="font-size:14px;color:var(--gris)">${L("de", "of")} ${NA}</small></b><span>${L("entre los años con más fuego (1 = el peor)", "among the years with most fire (1 = the worst)")}</span></div>`;
+    const porque = { rojo: L("Por eso la alerta está en <b>rojo</b>: este año está entre el 20 % de años con más fuego.", "That's why the alert is <b>red</b>: this year is among the 20 % of years with the most fire."),
+                     amarillo: L("Por eso la alerta está en <b>amarillo</b>: este año está entre el 40 % de años con más fuego.", "That's why the alert is <b>yellow</b>: this year is among the 40 % of years with the most fire."),
+                     verde: L("Por eso <b>no hay alerta</b>: este año va como la mayoría de los años, o con menos fuego.", "That's why there is <b>no alert</b>: this year is like most years, or has less fire.") }[luz];
     document.getElementById("alertaTexto").innerHTML = mediana < 3
-      ? `En ${lugar} casi no hay fuego en esta época del año, así que no hay alerta. 🌿`
-      : `Del 1 de enero al ${fechaHoyTexto} de ${AÑO_FIN} van <b>${fmt(actual)} focos</b> en ${lugar}. ` +
-        `Un año normal, a esta misma fecha, lleva unos <b>${fmt(mediana)}</b> ` +
-        `(${dif >= 0 ? "+" : "−"}${Math.abs(Math.round(dif))} %).<br>` +
-        `${AÑO_FIN} va en el puesto <b>${puesto} de ${NA}</b> años (1 = el peor).`;
+      ? L(`En ${lugar} casi no hay fuego en esta época del año, así que no hay alerta. 🌿`, `In ${lugar} there is almost no fire at this time of year, so there is no alert. 🌿`)
+      : porque;
   }
 
   // ---------- 1b. Escalera de años: por qué la luz tiene ese color ----------
@@ -3393,6 +3399,13 @@
     años.sort((x, y) => x.v - y.v || (x.actual ? 1 : -1));
     const max = Math.max(1, ...años.map(x => x.v));
     const el = document.getElementById("escalera");
+    // franja de zonas debajo de las barras (verde / amarillo / rojo), en vez de pintar cada barra
+    const zonas = años.map(x => colorPara(x.v, previos, mediana));
+    const EN = window.IDIOMA === "en";
+    const grupos = []; zonas.forEach(c => { const g = grupos[grupos.length - 1]; if (g && g.c === c) g.n++; else grupos.push({ c, n: 1 }); });
+    const nombreZona = { "#3ccf7a": EN ? "normal or less" : "normal o menos", "#ffc233": EN ? "high" : "alto", "#ff3b3b": EN ? "very high" : "muy alto", "#8e8e93": "" };
+    document.getElementById("zonas").outerHTML = `<div id="zonas"><div class="zonas">${grupos.map(g => `<span class="zn" style="flex:${g.n}; --c:${g.c}"></span>`).join("")}</div>
+      <div class="zonas-etq">${grupos.map(g => `<span style="flex:${g.n}; color:${g.c}">${g.n >= 3 ? nombreZona[g.c] : ""}</span>`).join("")}</div></div>`;
     el.innerHTML = años.map(x => `<span class="eb${x.actual ? " actual" : ""}" data-a="${x.a}" data-v="${x.v}"
         data-etq="${AÑOS_TXT[x.a]} · ${fmt(x.v)}" style="--h:${Math.max(3, x.v / max * 100)}%; --c:${colorPara(x.v, previos, mediana)}"></span>`).join("") +
       `<div class="linea-normal" style="bottom:${Math.max(3, mediana / max * 100) * (104 / 130)}px"><span>año normal: ${fmt(mediana)}</span></div>`;
