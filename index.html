@@ -233,7 +233,25 @@
       "Corporaciones ambientales:": "Environmental agencies:", "Cualquier persona:": "Anyone:", "buscar su municipio y entender qué está pasando.": "search their municipality and understand what is happening.",
       "Nuestro método en 3 pasos": "Our method in 3 steps", "Cómo convertimos dos satélites distintos en un solo registro comparable": "How we turn two different satellites into one comparable record",
       "Contamos focos, no puntos.": "We count hotspots, not points.", "Seguimos sin cortes.": "No gaps.",
-      "Nuestro método en 4 pasos": "Our method in 4 steps", "Satélite": "Satellite", "FLARE ya está al día.": "FLARE is up to date.", "Mañana habrá un día nuevo para agregar.": "There will be a new day to add tomorrow.",
+      "Nuestro método en 4 pasos": "Our method in 4 steps", "Satélite": "Satellite",
+      "Hacemos un llamado a toda la comunidad para": "We call on the whole community to", "prevenir nuevos incendios": "prevent new fires",
+      "Evita las quemas agrícolas en época seca": "Avoid agricultural burning in the dry season",
+      "No arrojes colillas de cigarrillo en zonas con vegetación": "Don't throw cigarette butts in areas with vegetation",
+      "No dejes fogatas encendidas sin vigilancia": "Don't leave campfires unattended", "No quemes basuras": "Don't burn garbage",
+      "Reporta cualquier incendio:": "Report any fire:", "o Bomberos": "or Firefighters",
+      "📌 La alerta siempre mira": "📌 The alert always looks at", "el año en curso": "the current year",
+      ": no cambia con el año o mes que elijas en el mapa, solo con el": ": it doesn't change with the year or month you choose on the map, only with the", "lugar": "place",
+      "¿Por qué este color?": "Why this color?", "Cada barra es un año, ordenado de menos a más fuego a esta misma fecha. Pasa el mouse por las barras.": "Each bar is a year, sorted from least to most fire by this same date. Hover over the bars.",
+      "← menos fuego": "← less fire", "más fuego →": "more fire →",
+      "Verde: como la mayoría de los años o menos": "Green: like most years or less", "Amarillo: entre el 40 % de años con más fuego": "Yellow: among the 40 % of years with the most fire",
+      "Rojo: entre el 20 % de años con más fuego": "Red: among the 20 % of years with the most fire",
+      "▲ / ▼ = más o menos de lo que ese lugar suele tener a esta fecha · clic para verlo": "▲ / ▼ = more or less than that place usually has by this date · click to see it",
+      "Los meses en que más se quema este lugar, en un año típico": "The months when this place burns the most, in a typical year",
+      "Qué hacer ahora": "What to do now", "Meses de la temporada": "Season months", "🔥 Mes pico": "🔥 Peak month",
+      "🔥 En temporada": "🔥 In season", "días": "days", "Mantener la vigilancia normal": "Keep normal monitoring",
+      "≈ como un año normal": "≈ like a normal year", "(este año)": "(this year)", "🔥 Es el mes con más fuego": "🔥 It's the month with the most fire",
+      "Parte de la temporada de quemas": "Part of the burning season", "Estamos en este mes": "We are in this month",
+      "Alerta del año en curso: del 1 de enero al": "Current year alert: from January 1 to", "está ahora en su temporada de quemas": "is now in its burning season", "FLARE ya está al día.": "FLARE is up to date.", "Mañana habrá un día nuevo para agregar.": "There will be a new day to add tomorrow.",
       ". Pide hasta ayer: el día de hoy la NASA todavía lo está publicando.": ". Request up to yesterday: NASA is still publishing today.",
       "no se agregó porque es hoy y la NASA todavía lo está publicando: súbelo mañana.": "was not added because it is today and NASA is still publishing it: upload it tomorrow.",
       "Suomi NPP dejó de enviar datos el 2 de noviembre de 2026. Comparamos su reemplazo, NOAA-20, en 2018–2026: ve apenas un 2 % más (r = 0,998). FLARE continúa con NOAA-20 ajustado, con 1,3 % de error en la validación.":
@@ -389,6 +407,26 @@
       R("La franja dorada es lo que pasa en (\\d+) de cada (\\d+) años\\. Si la línea roja \\(este año\\) se sale por encima, es un año peligroso\\.", (_, a, b) => `The gold band is what happens in ${a} out of ${b} years. If the red line (this year) goes above it, it's a dangerous year.`),
       R("Focos del (\\d+) de enero a hoy, frente a la misma fecha de otros años", (_, d) => `Hotspots from January ${d} to today, vs. the same date in other years`),
       R("Nombre (\\d+)", (_, n) => `Name ${n}`),
+      R("¿Qué tan grave va", () => "How serious is"),
+      R("año normal: " + N, (_, n) => `normal year: ${n}`),
+      R(N + " focos del 1 de enero al (\\d+) de " + M, (_, n, d, m) => `${n} hotspots from January 1 to ${mes(m)} ${d}`),
+      R("Puesto (\\d+) de (\\d+) \\(1 = el de más fuego\\)", (_, a, b) => `Rank ${a} of ${b} (1 = the most fire)`),
+      R("([▲▼]) " + N + " % (más|menos) que un año normal", (_, f, n, mm) => `${f} ${n} % ${mm === "más" ? "more" : "less"} than a normal year`),
+      R("En un año típico: " + N + " focos(?: \\((\\d+) % del año\\))?", (_, n, p) => `In a typical year: ${n} hotspots${p ? ` (${p} % of the year)` : ""}`),
+      R("(\\d+) de " + M + " de (\\d{4})", (_, d, m, a) => `${mes(m)} ${d}, ${a}`),
+      R(", comparado con los (\\d+) años anteriores a esta misma fecha\\.", (_, n) => `, compared with the previous ${n} years by this same date.`),
+      R("faltan para el", () => "left until"),
+      R("1 de " + M, (_, m) => `${mes(m)} 1`),
+      R(", cuando suele empezar la temporada de quemas en (.+?)\\. La temporada va", (_, l) => `, when the burning season usually starts in ${l}. The season runs`),
+      R("en", () => "in"),
+      R(", con el pico en", () => ", peaking in"),
+      R(", and en esos meses ocurre el", () => ", and those months account for"),
+      R(", y en esos meses ocurre el", () => ", and those months account for"),
+      R("del fuego de un año típico\\.", () => "of a typical year's fire."),
+      R("\\. Suele terminar en unos", () => ". It usually ends in about"),
+      R("\\. En esos meses ocurre el", () => ". Those months account for"),
+      R(", que va", () => ", which runs"),
+      R("(.+) casi no tiene fuego en ningún mes, así que no tiene una temporada de quemas clara\\. 🌿", (_, l) => `${l} has almost no fire in any month, so it has no clear burning season. 🌿`),
       R(N + " foco", (_, n) => `${n} hotspot`),
       R(": aquí casi no se ha detectado fuego desde (\\d+)\\.", (_, a) => `: almost no fire has been detected here since ${a}.`),
       R(N + " foco en el año", (_, n) => `${n} hotspot in the year`),
@@ -1435,6 +1473,86 @@
       #nosotros .integrante .nombre { font-size: 16px; }
     }
 
+    /* ====== ALERTA (rediseño: explicar el color y la temporada) ====== */
+    .alerta-nota { font-size: 13.5px; color: #d6d3cc; margin: -6px 0 18px; padding: 10px 14px; border-radius: 12px;
+                   background: rgba(201,165,76,.07); border: 1px solid rgba(201,165,76,.3); }
+    .alerta-nota b { color: var(--blanco); }
+    .alerta-rejilla { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); grid-template-areas: "sem rank" "temp rank"; }
+    .alerta-semaforo { grid-area: sem; } .alerta-ranking { grid-area: rank; align-self: start; } .alerta-cuenta { grid-area: temp; }
+    .escalera-bloque { margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.08); }
+    .escalera-titulo { font-size: 13.5px; color: var(--gris); margin-bottom: 14px; line-height: 1.5; }
+    .escalera-titulo b { color: var(--blanco); }
+    .escalera { position: relative; display: flex; align-items: flex-end; gap: 4px; height: 130px; padding-top: 26px; }
+    .escalera .eb { flex: 1; min-width: 0; height: var(--h); border-radius: 4px 4px 2px 2px; background: var(--c); opacity: .38; cursor: default;
+                    transition: opacity .2s, transform .25s var(--resorte); position: relative; }
+    .escalera { cursor: crosshair; }
+    .escalera .eb.sobre { opacity: .9; box-shadow: 0 0 0 1.5px rgba(255,255,255,.7); }
+    .escalera .eb.actual { opacity: 1; box-shadow: 0 0 0 2px #fff, 0 0 18px -2px var(--c); z-index: 2; }
+    .escalera .eb.actual::before { content: attr(data-etq); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+                    white-space: nowrap; font-size: 12px; font-weight: 800; color: var(--blanco); background: rgba(28,28,30,.9);
+                    border: 1px solid rgba(255,255,255,.2); padding: 2px 8px; border-radius: 999px; }
+    .escalera .linea-normal { position: absolute; left: 0; right: 0; border-top: 1.5px dashed rgba(255,255,255,.45); pointer-events: none; }
+    .escalera .linea-normal span { position: absolute; right: 0; top: -20px; font-size: 11px; color: #c8c5bd; background: rgba(18,18,20,.8); padding: 1px 6px; border-radius: 6px; }
+    .escalera-ejes { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--gris); margin-top: 6px; }
+    .escalera-leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: 12px; color: var(--gris); }
+    .escalera-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+    .escalera-leyenda i { width: 12px; height: 12px; border-radius: 3px; background: var(--c); display: inline-block; }
+    .cuenta-fila { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    .cuenta-numero small { font-size: 18px; color: var(--gris); font-weight: 700; }
+    .que-hacer { padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+    .que-hacer-titulo { font-size: 11.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dorado); margin-bottom: 6px; }
+    .que-hacer .recomendaciones { margin: 0; }
+    .tira-meses { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 5px; margin-top: 18px; align-items: end; }
+    .tm { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: default; position: relative; }
+    .tm .tm-barra { width: 100%; height: 64px; border-radius: 8px; background: rgba(255,255,255,.05); position: relative; overflow: hidden; border: 1px solid transparent; }
+    .tm .tm-barra i { position: absolute; left: 0; right: 0; bottom: 0; height: var(--h); background: linear-gradient(180deg, #e8892c, #a8742e); opacity: .45; border-radius: 0 0 7px 7px; }
+    .tm.temp .tm-barra { border-color: rgba(201,165,76,.75); background: rgba(201,165,76,.08); }
+    .tm.temp .tm-barra i { opacity: 1; }
+    .tm.pico .tm-barra::after { content: "🔥"; position: absolute; top: 3px; left: 50%; transform: translateX(-50%); font-size: 13px; }
+    .tm .tm-mes { font-size: 11.5px; color: var(--gris); font-weight: 600; }
+    .tm.temp .tm-mes { color: var(--blanco); }
+    .tm.hoy .tm-mes { color: var(--sobre-dorado); background: var(--blanco); border-radius: 999px; padding: 0 6px; }
+    .tm.hoy .tm-barra { box-shadow: 0 0 0 2px #fff; }
+    .tm.hoy .tm-barra::before { content: ""; position: absolute; top: 0; bottom: 0; left: var(--d); width: 2px; background: #fff; z-index: 1; }
+    .tm:hover .tm-barra { filter: brightness(1.3); }
+    .tira-leyenda .tl-temp { background: rgba(201,165,76,.25); border: 1px solid rgba(201,165,76,.8); }
+    .tira-leyenda .tl-hoy { background: transparent; border: 2px solid #fff; }
+    @media (max-width: 1100px) { .alerta-rejilla { grid-template-columns: minmax(0, 1fr); grid-template-areas: "sem" "temp" "rank"; } .alerta-ranking { grid-column: auto; } }
+    @media (max-width: 700px) { .cuenta-fila { grid-template-columns: 1fr; } .tira-meses { gap: 3px; } .tm .tm-mes { font-size: 10px; } .escalera { gap: 2px; } }
+
+    /* ====== CARTEL DE ALERTA ====== */
+    .cartel { --c: #3ccf7a; --c2: rgba(60,207,122,.20); position: relative; display: flex; align-items: center; justify-content: space-between; gap: 24px;
+              padding: 26px 30px; border-radius: 24px; margin-bottom: 18px; overflow: hidden;
+              background: linear-gradient(115deg, var(--c2), rgba(18,18,20,.55) 70%); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent);
+              box-shadow: 0 20px 50px -24px var(--c); transition: background .5s, border-color .5s, box-shadow .5s; }
+    .cartel.rojo { --c: #ff3b3b; --c2: rgba(255,59,59,.32); }
+    .cartel.amarillo { --c: #ffc233; --c2: rgba(255,194,51,.26); }
+    .cartel.gris { --c: #8e8e93; --c2: rgba(142,142,147,.16); }
+    .cartel-eti { font-size: 12.5px; font-weight: 800; letter-spacing: 2.4px; color: var(--c); }
+    .cartel-titulo { font-size: clamp(26px, 4vw, 44px); font-weight: 900; line-height: 1.02; letter-spacing: -0.03em; margin: 6px 0 10px; text-transform: uppercase; }
+    .cartel-titulo #cartelLugar { color: var(--c); }
+    .cartel-sub { font-size: 15.5px; line-height: 1.55; color: #e7e4dc; margin: 0; max-width: 760px; }
+    .cartel-sub b { color: var(--blanco); }
+    .cartel-luz { flex-shrink: 0; width: 92px; height: 92px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff8, var(--c) 45%, color-mix(in srgb, var(--c) 60%, #000));
+                  box-shadow: 0 0 0 10px color-mix(in srgb, var(--c) 18%, transparent), 0 0 60px var(--c); }
+    .cartel.rojo .cartel-luz { animation: latidoLuz 1.6s ease-in-out infinite; }
+    @keyframes latidoLuz { 50% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--c) 10%, transparent), 0 0 80px var(--c); } }
+    .prevencion { margin-bottom: 18px; padding: 18px 20px; border-radius: 20px; background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.08); }
+    .prevencion-titulo { text-align: center; font-size: 15px; color: #e7e4dc; margin-bottom: 14px; }
+    .prevencion-titulo b { color: var(--dorado); }
+    .prevencion-fila { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .pv { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 10px 6px; border-radius: 14px;
+          transition: background .25s, transform .3s var(--resorte); }
+    .pv:hover { background: rgba(255,255,255,.05); transform: translateY(-3px); }
+    .pv svg { width: 58px; height: 58px; }
+    .pv span { font-size: 12.5px; line-height: 1.4; color: #d6d3cc; }
+    .pv span b { color: #3ccf7a; font-size: 14px; }
+    @media (max-width: 800px) {
+      .cartel { padding: 20px; } .cartel-luz { width: 56px; height: 56px; }
+      .prevencion-fila { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .pv-reporta { grid-column: span 3; flex-direction: row; justify-content: center; text-align: left; }
+    }
+
     /* ====== PÁGINA DATOS ====== */
     .datos-rejilla { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
     .datos-columna { display: flex; flex-direction: column; gap: 20px; }
@@ -1800,6 +1918,7 @@
       </div>
     </div>
     <div class="cal-tip" id="calTip" role="tooltip"></div>
+    <div class="cal-tip" id="alertaTip" role="tooltip"></div>
   </section>
 
   <!-- ====================== ALERTA ====================== -->
@@ -1808,11 +1927,31 @@
       <header class="encabezado-pagina">
         <div>
           <div class="paso"><span class="num-paso">03</span> Alerta temprana</div>
-          <h2>¿Qué tan grave va este año en <span id="alertaLugar">Colombia</span>?</h2>
-          <p>Comparamos lo que va de este año con los 25 años anteriores y con la temporada de quemas de cada lugar.</p>
+          <h2>¿Qué tan grave va <span id="alertaAño">2026</span> en <span id="alertaLugar">Colombia</span>?</h2>
+          <p id="alertaSub">Comparamos lo que va de este año con los años anteriores, a la misma fecha.</p>
         </div>
         <div class="chip-lugar" data-chip></div>
       </header>
+      <!-- Cartel de alerta: se entiende de un vistazo -->
+      <div class="cartel" id="cartel">
+        <div class="cartel-texto">
+          <div class="cartel-eti" id="cartelEti">ALERTA DE INCENDIOS · 2026</div>
+          <h3 class="cartel-titulo"><span id="cartelLugar">COLOMBIA</span> <span id="cartelEstado">—</span></h3>
+          <p class="cartel-sub" id="cartelSub"></p>
+        </div>
+        <div class="cartel-luz" id="cartelLuz" aria-hidden="true"></div>
+      </div>
+      <div class="prevencion">
+        <div class="prevencion-titulo" id="prevTitulo">Hacemos un llamado a toda la comunidad para <b>prevenir nuevos incendios</b></div>
+        <div class="prevencion-fila">
+          <div class="pv"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="rgba(255,59,59,.12)" stroke="#ff4d4d" stroke-width="4"/><path d="M14 46h36" stroke="#c8c5bd" stroke-width="3" stroke-linecap="round"/><path d="M20 46c0-6 3-9 4-12M30 46c0-8 3-12 4-16M40 46c0-6 2-9 3-11" stroke="#7fbf6a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M33 18c1 7 9 11 9 21a10 10 0 0 1-20 0c0-5 3-8 5-10 0 4 2 6 4 7-1-7 1-13 2-18z" fill="#f2a33a"/><line x1="12" y1="12" x2="52" y2="52" stroke="#ff4d4d" stroke-width="5" stroke-linecap="round"/></svg><span>Evita las quemas agrícolas en época seca</span></div>
+          <div class="pv"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="rgba(255,59,59,.12)" stroke="#ff4d4d" stroke-width="4"/><rect x="14" y="30" width="30" height="7" rx="2" fill="#e9e6df"/><rect x="38" y="30" width="8" height="7" rx="1" fill="#f2a33a"/><path d="M48 28c3-3 1-6 3-9" stroke="#8e8e93" stroke-width="2.5" fill="none" stroke-linecap="round"/><line x1="12" y1="12" x2="52" y2="52" stroke="#ff4d4d" stroke-width="5" stroke-linecap="round"/></svg><span>No arrojes colillas de cigarrillo en zonas con vegetación</span></div>
+          <div class="pv"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="rgba(255,59,59,.12)" stroke="#ff4d4d" stroke-width="4"/><path d="M18 48l28-8M18 40l28 8" stroke="#a8742e" stroke-width="4" stroke-linecap="round"/><path d="M33 12c1 7 9 11 9 21a9 9 0 0 1-18 0c0-5 3-8 5-10 0 4 2 6 4 7-1-7 1-13 2-18z" fill="#f2a33a"/><line x1="12" y1="12" x2="52" y2="52" stroke="#ff4d4d" stroke-width="5" stroke-linecap="round"/></svg><span>No dejes fogatas encendidas sin vigilancia</span></div>
+          <div class="pv"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="rgba(255,59,59,.12)" stroke="#ff4d4d" stroke-width="4"/><path d="M22 26h20l-2 22H24z" fill="#5b5b60"/><path d="M20 26h24M28 22h8" stroke="#c8c5bd" stroke-width="3" stroke-linecap="round"/><path d="M34 14c1 4 5 6 5 10a5 5 0 0 1-10 0c0-2 1-4 2-5 0 2 1 3 2 3-1-3 0-6 1-8z" fill="#f2a33a"/><line x1="12" y1="12" x2="52" y2="52" stroke="#ff4d4d" stroke-width="5" stroke-linecap="round"/></svg><span>No quemes basuras</span></div>
+          <div class="pv pv-reporta"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="rgba(60,207,122,.14)" stroke="#3ccf7a" stroke-width="4"/><path d="M24 18c2-1 4 0 5 2l3 6c1 2 0 4-2 5l-2 1c2 5 5 8 10 10l1-2c1-2 3-3 5-2l6 3c2 1 3 3 2 5-2 5-6 7-11 5-10-4-17-11-21-21-2-5 0-9 4-12z" fill="#3ccf7a"/></svg><span>Reporta cualquier incendio: <b>123</b> o Bomberos <b>119</b></span></div>
+        </div>
+      </div>
+      <p class="alerta-nota">📌 La alerta siempre mira <b>el año en curso</b>: no cambia con el año o mes que elijas en el mapa, solo con el <b>lugar</b>.</p>
 
       <div class="alerta-rejilla">
         <div class="card alerta-semaforo">
@@ -1831,24 +1970,47 @@
               <p class="alerta-texto" id="alertaTexto"></p>
             </div>
           </div>
-        </div>
-
-        <div class="card alerta-cuenta">
-          <div class="card-cabecera">
-            <span class="card-icono" data-icono="reloj"></span>
-            <div><h3>Temporada de quemas</h3><p>Cuánto falta y qué hacer</p></div>
+          <div class="escalera-bloque">
+            <div class="escalera-titulo"><b>¿Por qué este color?</b> Cada barra es un año, ordenado de menos a más fuego a esta misma fecha. Pasa el mouse por las barras.</div>
+            <div class="escalera" id="escalera"></div>
+            <div class="escalera-ejes"><span>← menos fuego</span><span>más fuego →</span></div>
+            <div class="escalera-leyenda">
+              <span><i style="--c:#3ccf7a"></i>Verde: como la mayoría de los años o menos</span>
+              <span><i style="--c:#ffc233"></i>Amarillo: entre el 40 % de años con más fuego</span>
+              <span><i style="--c:#ff3b3b"></i>Rojo: entre el 20 % de años con más fuego</span>
+            </div>
           </div>
-          <div class="cuenta-numero" id="cuentaNumero">—</div>
-          <div class="cuenta-texto" id="cuentaTexto"></div>
-          <ul class="recomendaciones" id="recomendaciones"></ul>
         </div>
 
         <div class="card alerta-ranking">
           <div class="card-cabecera">
             <span class="card-icono" data-icono="lista"></span>
-            <div><h3 id="rankingTitulo">Dónde hay más fuego este año</h3><p>Haz clic en un nombre para verlo en el mapa</p></div>
+            <div><h3 id="rankingTitulo">Dónde hay más fuego este año</h3><p>▲ / ▼ = más o menos de lo que ese lugar suele tener a esta fecha · clic para verlo</p></div>
           </div>
           <ol class="ranking" id="ranking"></ol>
+        </div>
+
+        <div class="card alerta-cuenta">
+          <div class="card-cabecera">
+            <span class="card-icono" data-icono="reloj"></span>
+            <div><h3>Temporada de quemas</h3><p>Los meses en que más se quema este lugar, en un año típico</p></div>
+          </div>
+          <div class="cuenta-fila">
+            <div>
+              <div class="cuenta-numero" id="cuentaNumero">—</div>
+              <div class="cuenta-texto" id="cuentaTexto"></div>
+            </div>
+            <div class="que-hacer">
+              <div class="que-hacer-titulo">Qué hacer ahora</div>
+              <ul class="recomendaciones" id="recomendaciones"></ul>
+            </div>
+          </div>
+          <div class="tira-meses" id="tiraMeses"></div>
+          <div class="escalera-leyenda tira-leyenda">
+            <span><i class="tl-temp"></i>Meses de la temporada</span>
+            <span>🔥 Mes pico</span>
+            <span><i class="tl-hoy"></i>Hoy</span>
+          </div>
         </div>
       </div>
 
@@ -3160,6 +3322,36 @@
     return t;
   }
 
+  // ---------- 0. Cartel de alerta (titular grande) ----------
+  function dibujarCartel() {
+    const EN = window.IDIOMA === "en", L = (es, en) => EN ? en : es;
+    const e = window.ESTADO_ALERTA || {}, t = window.ESTADO_TEMPORADA;
+    const lugar = document.getElementById("alertaLugar").textContent;
+    const cartel = document.getElementById("cartel");
+    const clase = e.luz === "rojo" ? "rojo" : e.luz === "amarillo" ? "amarillo" : e.luz === "verde" ? "verde" : "gris";
+    cartel.className = "cartel " + clase;
+    document.getElementById("cartelEti").textContent = L(`ALERTA DE INCENDIOS · ${AÑO_FIN} · AL ${fechaHoyTexto.toUpperCase()}`, `WILDFIRE ALERT · ${AÑO_FIN}`);
+    document.getElementById("cartelLugar").textContent = lugar;
+    document.getElementById("cartelEstado").textContent = {
+      rojo: L("está en alerta roja", "is on red alert"), amarillo: L("está en alerta amarilla", "is on yellow alert"),
+      verde: L("está sin alerta", "has no alert"), gris: L("casi no tiene fuego", "has almost no fire") }[clase];
+    const d = Math.round(Math.abs(e.dif || 0));
+    let frase = clase === "gris"
+      ? L("Aquí casi nunca se detecta fuego, así que no hay alerta. 🌿", "Fire is almost never detected here, so there is no alert. 🌿")
+      : Math.abs(e.dif) < 10
+        ? L(`Este año va con <b>casi el mismo fuego</b> que un año normal a esta fecha.`, `This year has <b>about the same fire</b> as a normal year by this date.`)
+        : e.dif > 0
+          ? L(`Este año va con <b>${d} % más fuego</b> que un año normal a esta fecha (puesto ${e.puesto} de ${NA}).`, `This year has <b>${d} % more fire</b> than a normal year by this date (rank ${e.puesto} of ${NA}).`)
+          : L(`Este año va con <b>${d} % menos fuego</b> que un año normal a esta fecha.`, `This year has <b>${d} % less fire</b> than a normal year by this date.`);
+    if (t && clase !== "gris") frase += t.enTemporada
+      ? L(` 🔥 <b>Y está en temporada de quemas</b>: es cuando más hay que cuidarse.`, ` 🔥 <b>And it is in the burning season</b>: the time to be most careful.`)
+      : L(` Faltan <b>${t.dias} días</b> para su temporada de quemas (${t.mes}).`, ` <b>${t.dias} days</b> left until its burning season (${t.mes}).`);
+    document.getElementById("cartelSub").innerHTML = frase;
+    document.getElementById("prevTitulo").innerHTML = (clase === "rojo" || (t && t.enTemporada))
+      ? L(`⚠️ <b>Es momento de extremar cuidados.</b> Hacemos un llamado a toda la comunidad para prevenir nuevos incendios`, `⚠️ <b>Time to take extra care.</b> We call on the whole community to prevent new fires`)
+      : L(`Hacemos un llamado a toda la comunidad para <b>prevenir nuevos incendios</b>`, `We call on the whole community to <b>prevent new fires</b>`);
+  }
+
   // ---------- 1. Semáforo ----------
   function semaforo(arm) {
     const actual = hastaHoy(arm, NA - 1);
@@ -3177,8 +3369,10 @@
     else                             { luz = "verde";    nivel = "🟢 Por debajo de lo normal"; }
 
     document.querySelectorAll(".luz").forEach(l => l.classList.toggle("on", l.dataset.luz === luz));
+    window.ESTADO_ALERTA = { luz, mediana, actual, puesto, dif: mediana ? (actual / mediana - 1) * 100 : 0 };
     document.getElementById("alertaNivel").textContent = nivel;
     const dif = mediana ? (actual / mediana - 1) * 100 : 0;
+    dibujarEscalera(previos, actual, mediana);
     document.getElementById("alertaTexto").innerHTML = mediana < 3
       ? `En ${lugar} casi no hay fuego en esta época del año, así que no hay alerta. 🌿`
       : `Del 1 de enero al ${fechaHoyTexto} de ${AÑO_FIN} van <b>${fmt(actual)} focos</b> en ${lugar}. ` +
@@ -3187,6 +3381,48 @@
         `${AÑO_FIN} va en el puesto <b>${puesto} de ${NA}</b> años (1 = el peor).`;
   }
 
+  // ---------- 1b. Escalera de años: por qué la luz tiene ese color ----------
+  const tipAlerta = document.getElementById("alertaTip");
+  function colorPara(v, previos, mediana) {
+    if (mediana < 3) return "#8e8e93";
+    const pct = previos.filter(p => p < v).length / previos.length;
+    return pct >= 0.8 ? "#ff3b3b" : pct >= 0.6 ? "#ffc233" : "#3ccf7a";
+  }
+  function dibujarEscalera(previos, actual, mediana) {
+    const años = previos.map((v, a) => ({ a, v, actual: false })).concat([{ a: NA - 1, v: actual, actual: true }]);
+    años.sort((x, y) => x.v - y.v || (x.actual ? 1 : -1));
+    const max = Math.max(1, ...años.map(x => x.v));
+    const el = document.getElementById("escalera");
+    el.innerHTML = años.map(x => `<span class="eb${x.actual ? " actual" : ""}" data-a="${x.a}" data-v="${x.v}"
+        data-etq="${AÑOS_TXT[x.a]} · ${fmt(x.v)}" style="--h:${Math.max(3, x.v / max * 100)}%; --c:${colorPara(x.v, previos, mediana)}"></span>`).join("") +
+      `<div class="linea-normal" style="bottom:${Math.max(3, mediana / max * 100) * (104 / 130)}px"><span>año normal: ${fmt(mediana)}</span></div>`;
+    // la línea se ubica dentro del alto útil (alto total 130 px menos 26 px de espacio arriba)
+    el.querySelector(".linea-normal").style.bottom = `${(mediana / max) * 104}px`;
+    const lugar = document.getElementById("alertaLugar").textContent;
+    el.onmousemove = e => {
+      // la barra más cercana en horizontal (así se puede pasar el mouse por toda la columna, no solo por la barra)
+      const barras = [...el.querySelectorAll(".eb")];
+      let b = null, mejor = Infinity;
+      for (const x of barras) { const r = x.getBoundingClientRect(), d = Math.abs(e.clientX - (r.left + r.width / 2)); if (d < mejor) { mejor = d; b = x; } }
+      barras.forEach(x => x.classList.toggle("sobre", x === b));
+      if (!b) { tipAlerta.classList.remove("visible"); return; }
+      const a = Number(b.dataset.a), v = Number(b.dataset.v);
+      const puesto = años.length - años.findIndex(x => x.a === a);
+      const dif = mediana >= 1 ? (v / mediana - 1) * 100 : 0;
+      tipAlerta.innerHTML = `<b>${AÑOS_TXT[a]}${a === NA - 1 ? " (este año)" : ""}</b><br>${fmt(v)} focos del 1 de enero al ${fechaHoyTexto}` +
+        (mediana >= 1 ? `<br><span class="${dif > 10 ? "t-mal" : dif < -10 ? "t-bien" : ""}">${Math.abs(dif) < 10 ? "≈ como un año normal" : `${dif > 0 ? "▲" : "▼"} ${Math.abs(Math.round(dif))} % ${dif > 0 ? "más" : "menos"} que un año normal`}</span>` : "") +
+        `<br><span class="t-pista">Puesto ${puesto} de ${años.length} (1 = el de más fuego)</span>`;
+      tipAlerta.classList.add("visible");
+      const w = tipAlerta.offsetWidth, hh = tipAlerta.offsetHeight;
+      let x = e.clientX + 16, y = e.clientY - hh - 12;
+      if (x + w > innerWidth - 8) x = e.clientX - w - 16;
+      if (y < 8) y = e.clientY + 16;
+      tipAlerta.style.left = x + "px"; tipAlerta.style.top = y + "px";
+    };
+    el.onmouseleave = () => { tipAlerta.classList.remove("visible"); el.querySelectorAll(".eb.sobre").forEach(x => x.classList.remove("sobre")); };
+  }
+  window.addEventListener("scroll", () => tipAlerta.classList.remove("visible"), { passive: true });
+
   // ---------- 2. Cuenta regresiva de la temporada ----------
   function cuentaRegresiva(arm) {
     const normal = promedioPorMes(arm);
@@ -3194,37 +3430,75 @@
     const num = document.getElementById("cuentaNumero");
     const txt = document.getElementById("cuentaTexto");
     const rec = document.getElementById("recomendaciones");
+    const tira = document.getElementById("tiraMeses");
     if (Math.max(...normal) < 1) {
       num.textContent = "—";
-      txt.innerHTML = `${lugar} no tiene una temporada de quemas clara.`;
-      rec.innerHTML = "";
+      txt.innerHTML = `${lugar} casi no tiene fuego en ningún mes, así que no tiene una temporada de quemas clara. 🌿`;
+      window.ESTADO_TEMPORADA = null;
+      rec.innerHTML = "<li>Mantener la vigilancia normal</li>";
+      dibujarTira(normal, null);
       return;
     }
     const t = temporada(normal);
     const hoy = new Date(AÑO_FIN, HOY.mes - 1, HOY.dia);
     const mesHoy = HOY.mes - 1;
+    const EN = window.IDIOMA === "en", L = (es, en) => EN ? en : es;
+    const MESES_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const m = k => EN ? MESES_EN[k] : MESES[k].toLowerCase();
+    const periodo = t.ini === t.fin ? L(`en <b>${m(t.ini)}</b>`, `in <b>${m(t.ini)}</b>`) : L(`de <b>${m(t.ini)}</b> a <b>${m(t.fin)}</b>`, `from <b>${m(t.ini)}</b> to <b>${m(t.fin)}</b>`);
+    const pico = t.ini === t.fin ? "" : L(`, con el pico en <b>${m(t.pico)}</b>`, `, peaking in <b>${m(t.pico)}</b>`);
+    const pct = `<b>${Math.round(t.porcentaje * 100)} %</b>`;
     let consejos;
     if (estaEnTemporada(mesHoy, t)) {
       const finTemporada = new Date(AÑO_FIN + (t.fin < mesHoy ? 1 : 0), t.fin + 1, 0);
       const dias = Math.round((finTemporada - hoy) / 864e5);
-      num.textContent = "🔥 Ahora";
-      txt.innerHTML = `${lugar} <b>está en temporada de quemas</b> (de ${MESES[t.ini].toLowerCase()} a ${MESES[t.fin].toLowerCase()}). ` +
-                      `Suele terminar en unos <b>${dias} días</b>. El pico es en ${MESES[t.pico].toLowerCase()}.`;
+      num.innerHTML = L(`🔥 En temporada`, `🔥 In season`);
+      txt.innerHTML = L(`${lugar} <b>está ahora en su temporada de quemas</b>, que va ${periodo}${pico}. Suele terminar en unos <b>${dias} días</b>. En esos meses ocurre el ${pct} del fuego de un año típico.`,
+                        `${lugar} <b>is now in its burning season</b>, which runs ${periodo}${pico}. It usually ends in about <b>${dias} days</b>. Those months account for ${pct} of a typical year's fire.`);
+      window.ESTADO_TEMPORADA = { enTemporada: true, dias, mes: m(t.ini) };
       consejos = ["Mantener brigadas y vigilancia activas", "Evitar quemas agrícolas y de basuras", "Reportar cualquier incendio a las autoridades"];
     } else {
       let inicio = new Date(AÑO_FIN, t.ini, 1);
       if (inicio <= hoy) inicio = new Date(AÑO_FIN + 1, t.ini, 1);
       const dias = Math.round((inicio - hoy) / 864e5);
-      num.textContent = `${dias} días`;
-      txt.innerHTML = `faltan para que empiece la temporada de quemas en ${lugar} ` +
-                      `(de <b>${MESES[t.ini].toLowerCase()}</b> a <b>${MESES[t.fin].toLowerCase()}</b>, pico en ${MESES[t.pico].toLowerCase()}). ` +
-                      `En esos meses ocurre el <b>${Math.round(t.porcentaje * 100)} %</b> del fuego del año.` +
-                      (dias <= 60 ? `<br>⚠️ <b>¡Hora de prepararse!</b>` : "");
+      num.innerHTML = `${dias} <small>${L("días", "days")}</small>`;
+      txt.innerHTML = L(`faltan para el <b>1 de ${m(t.ini)}</b>, cuando suele empezar la temporada de quemas en ${lugar}. La temporada va ${periodo}${pico}, y en esos meses ocurre el ${pct} del fuego de un año típico.`,
+                        `left until <b>${m(t.ini)} 1</b>, when the burning season usually starts in ${lugar}. The season runs ${periodo}${pico}, and those months account for ${pct} of a typical year's fire.`) +
+                      (dias <= 60 ? `<br>⚠️ <b>${L("¡Hora de prepararse!", "Time to get ready!")}</b>` : "");
+      window.ESTADO_TEMPORADA = { enTemporada: false, dias, mes: m(t.ini) };
       consejos = dias <= 60
         ? ["Revisar equipos y brigadas contra incendios", "Limpiar cortafuegos y vegetación seca", "Planear las quemas agrícolas con permiso y fuera del pico"]
         : ["Planear la prevención con tiempo", "Revisar las zonas que más se quemaron en años anteriores"];
     }
     rec.innerHTML = consejos.map(c => `<li>${c}</li>`).join("");
+    dibujarTira(normal, t);
+  }
+
+  // Tira de los 12 meses: cuánto fuego hay en un año típico, cuáles son la temporada y dónde estamos hoy
+  function dibujarTira(normal, t) {
+    const max = Math.max(1, ...normal), total = normal.reduce((a, b) => a + b, 0);
+    const tira = document.getElementById("tiraMeses");
+    tira.innerHTML = MESES_CORTOS.map((nombre, k) => {
+      const enTemp = t && estaEnTemporada(k, t), esPico = t && k === t.pico, esHoy = k === HOY.mes - 1;
+      const d = esHoy ? (HOY.dia / new Date(AÑO_FIN, k + 1, 0).getDate() * 100) : 0;
+      return `<div class="tm${enTemp ? " temp" : ""}${esPico ? " pico" : ""}${esHoy ? " hoy" : ""}" data-k="${k}">
+        <div class="tm-barra" style="--d:${d}%"><i style="--h:${normal[k] / max * 100}%"></i></div><span class="tm-mes">${nombre}</span></div>`;
+    }).join("");
+    tira.onmousemove = e => {
+      const c = e.target.closest(".tm");
+      if (!c) { tipAlerta.classList.remove("visible"); return; }
+      const k = Number(c.dataset.k), v = normal[k];
+      tipAlerta.innerHTML = `<b>${MESES[k]}</b><br>En un año típico: ${fmt(v)} focos` + (total >= 1 ? ` (${Math.round(v / total * 100)} % del año)` : "") +
+        (t && k === t.pico ? `<br>🔥 Es el mes con más fuego` : t && estaEnTemporada(k, t) ? `<br>Parte de la temporada de quemas` : "") +
+        (k === HOY.mes - 1 ? `<br><span class="t-pista">Estamos en este mes</span>` : "");
+      tipAlerta.classList.add("visible");
+      const w = tipAlerta.offsetWidth, hh = tipAlerta.offsetHeight;
+      let x = e.clientX + 16, y = e.clientY - hh - 12;
+      if (x + w > innerWidth - 8) x = e.clientX - w - 16;
+      if (y < 8) y = e.clientY + 16;
+      tipAlerta.style.left = x + "px"; tipAlerta.style.top = y + "px";
+    };
+    tira.onmouseleave = () => tipAlerta.classList.remove("visible");
   }
 
   // ---------- 3. Ranking de municipios (o departamentos) este año ----------
@@ -3327,9 +3601,12 @@
     window.ALERTA_PENDIENTE = false;
     const u = seleccion ? UNIDADES[seleccion.tipo].lista[seleccion.id] : null;
     document.getElementById("alertaLugar").textContent = u ? u.nombre : "Colombia";
+    document.getElementById("alertaAño").textContent = AÑO_FIN;
+    document.getElementById("alertaSub").innerHTML = `Alerta del año en curso: del 1 de enero al <b>${fechaHoyTexto} de ${AÑO_FIN}</b>, comparado con los ${NA - 1} años anteriores a esta misma fecha.`;
     const { arm } = CAL.series || serieMensual();
     semaforo(arm);
     cuentaRegresiva(arm);
+    dibujarCartel();
     ranking();
     graficaAcumulada(arm);
   }
