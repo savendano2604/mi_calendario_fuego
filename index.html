@@ -234,7 +234,20 @@
       "Nuestro método en 3 pasos": "Our method in 3 steps", "Cómo convertimos dos satélites distintos en un solo registro comparable": "How we turn two different satellites into one comparable record",
       "Contamos focos, no puntos.": "We count hotspots, not points.", "Seguimos sin cortes.": "No gaps.",
       "Nuestro método en 4 pasos": "Our method in 4 steps", "Satélite": "Satellite",
-      "Lo que hace FLARE": "What FLARE does", "Cuatro herramientas,": "Four tools,", "una sola mirada al fuego": "one single view of fire",
+      "Lo que hace FLARE": "What FLARE does",
+      "Busca tu municipio": "Find your municipality", "Escribe su nombre en el buscador": "Type its name in the search box",
+      "Un año, un mes o los 25 años": "One year, one month or all 25 years",
+      "Haz clic en el mapa": "Click on the map", "Mira sus cifras en el panel": "See its numbers in the panel",
+      "Cada fila es un año": "Each row is a year", "De 2001 hasta hoy": "From 2001 to today",
+      "Cada cuadro es un mes": "Each square is a month", "Más oscuro = más fuego": "Darker = more fire",
+      "Haz clic en un cuadro": "Click a square", "Verás su detalle al lado": "You'll see its details on the side",
+      "Mira el color": "Look at the color", "Rojo, amarillo o verde": "Red, yellow or green",
+      "Compara con lo normal": "Compare with normal", "Este año frente a un año típico": "This year versus a typical year",
+      "Prepárate a tiempo": "Get ready in time", "Antes de que empiece la temporada": "Before the season starts",
+      "Descarga": "Download", "Los archivos de NASA FIRMS": "The NASA FIRMS files",
+      "Sube": "Upload", "Los ZIP tal como llegan": "The ZIP files as they arrive",
+      "Procesa": "Process", "Todo en tu computador": "All on your computer",
+      "Publica": "Publish", "En GitHub para todos": "On GitHub for everyone", "Cómo se usa": "How to use it", "Cuatro herramientas,": "Four tools,", "una sola mirada al fuego": "one single view of fire",
       "¿Dónde se quema?": "Where does it burn?", "Mapa de calor de 25 años, municipio por municipio, con buscador y viaje en el tiempo.": "A 25-year heat map, municipality by municipality, with search and time travel.",
       "Abrir el mapa": "Open the map", "Cada año y cada mes en un solo calendario, con la temporada de quemas de cada lugar.": "Every year and month in a single calendar, with each place's burning season.",
       "Ver el calendario": "See the calendar", "¿Qué tan grave va el año?": "How serious is the year?", "Compara el año en curso con los anteriores y avisa antes de que llegue la temporada.": "Compares the current year with previous ones and warns before the season arrives.",
@@ -1711,6 +1724,81 @@
     }
     @media (prefers-reduced-motion: reduce) { .flujo-linea, .feat:hover .feat-ico { animation: none; } .brasas { display: none; } }
 
+    /* ====== PÁGINAS INTERNAS: mismo lenguaje visual que el inicio ====== */
+    .encabezado-pagina { position: relative; isolation: isolate; border-bottom: 0; padding-bottom: 28px; }
+    .encabezado-pagina::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+      background: linear-gradient(90deg, rgba(255,106,61,.7), rgba(201,165,76,.45) 30%, rgba(255,255,255,.06) 70%); }
+    .encabezado-pagina::before { content: ""; position: absolute; left: -120px; top: -90px; width: 520px; height: 320px; pointer-events: none; z-index: -1;
+      background: radial-gradient(closest-side, rgba(255,106,61,.16), transparent); }
+    .encabezado-pagina .paso { font-weight: 800; letter-spacing: 2.6px; font-size: 13px; }
+    .encabezado-pagina .paso::after { content: ""; width: 28px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, #ff6a3d, var(--dorado)); order: -1; }
+    .encabezado-pagina .num-paso { border-radius: 50%; min-width: 30px; width: 30px; height: 30px; padding: 0;
+      background: radial-gradient(circle at 30% 25%, rgba(255,179,71,.4), rgba(255,106,61,.14) 65%); border-color: rgba(255,150,70,.6); color: #ffd59a;
+      box-shadow: 0 0 0 4px rgba(255,106,61,.07); }
+    .encabezado-pagina h2 { font-family: var(--display); font-variation-settings: "wdth" 78; font-stretch: 78%; font-weight: 850;
+      font-size: clamp(34px, 4vw, 56px); line-height: 1; letter-spacing: -0.01em; margin: 14px 0 12px; }
+    .encabezado-pagina h2 span { background: linear-gradient(90deg, #ffb347, #ff6a3d 55%, var(--dorado)); -webkit-background-clip: text; background-clip: text;
+      color: transparent; animation: none; background-size: 100% 100%; }
+    .encabezado-pagina p { font-size: 15.5px; line-height: 1.55; }
+
+    /* Guía rápida (3–4 pasos con círculo de fuego) */
+    .guia { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: -4px 0 22px; }
+    .guia.guia-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .guia-paso { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015)); border: 1px solid rgba(255,255,255,.08);
+      transition: transform .4s var(--resorte), border-color .3s, box-shadow .4s; }
+    .guia-paso:hover { transform: translateY(-4px); border-color: rgba(255,140,60,.5); box-shadow: 0 20px 44px -26px rgba(255,106,61,.6); }
+    .guia-ico { flex-shrink: 0; display: grid; place-items: center; width: 50px; height: 50px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 25%, rgba(255,179,71,.35), rgba(255,106,61,.12) 60%, rgba(255,255,255,.02));
+      border: 1.5px solid rgba(255,150,70,.55); box-shadow: 0 0 0 5px rgba(255,106,61,.06), 0 10px 24px -10px rgba(255,106,61,.6); }
+    .guia-ico svg { width: 24px; height: 24px; fill: none; stroke: #ffd59a; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .guia-paso:hover .guia-ico { animation: latidoIco 1.4s ease-in-out infinite; }
+    .guia-paso b { display: flex; align-items: baseline; gap: 8px; font-size: 15px; font-weight: 800; line-height: 1.25; }
+    .guia-paso b i { font-style: normal; font-family: var(--display); font-variation-settings: "wdth" 78; font-weight: 850; font-size: 18px; color: var(--dorado); }
+    .guia-paso span:not(.guia-ico) { display: block; font-size: 13px; color: var(--gris); margin-top: 3px; line-height: 1.4; }
+
+    /* Íconos de tarjetas: círculos de fuego */
+    .card-icono, .num-paso.grande { border-radius: 50%;
+      background: radial-gradient(circle at 30% 25%, rgba(255,179,71,.32), rgba(255,106,61,.1) 62%, rgba(255,255,255,.02));
+      border: 1.5px solid rgba(255,150,70,.5); color: #ffd59a; box-shadow: 0 0 0 4px rgba(255,106,61,.05), 0 8px 20px -10px rgba(255,106,61,.6); }
+    .card-icono { width: 40px; height: 40px; }
+    .card-icono.chico { width: 30px; height: 30px; border-radius: 50%; }
+    .card-cabecera .num-paso.grande { border-radius: 50%; width: 40px; min-width: 40px; height: 40px; font-family: var(--display); font-variation-settings: "wdth" 78; font-weight: 850; font-size: 18px; }
+    .card { transition: border-color .35s, box-shadow .45s; }
+    .card:hover { border-color: rgba(255,140,60,.28); box-shadow: 0 26px 60px -40px rgba(255,106,61,.55); }
+
+    /* Nosotros */
+    .paso-metodo { position: relative; overflow: hidden; border-radius: 20px; padding: 20px 20px 22px; }
+    .paso-metodo::before { content: ""; position: absolute; inset: -50% -50% auto auto; width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,106,61,.22), transparent 65%); opacity: 0; transition: opacity .45s; pointer-events: none; }
+    .paso-metodo:hover { border-color: rgba(255,140,60,.5); }
+    .paso-metodo:hover::before { opacity: 1; }
+    .paso-metodo:hover .guia-ico { animation: latidoIco 1.4s ease-in-out infinite; }
+    .metodo-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .metodo-num { font-family: var(--display); font-variation-settings: "wdth" 78; font-weight: 850; font-size: 34px; line-height: 1;
+      background: linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.04)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .paso-metodo b { font-size: 16px; }
+    .nos-cifras b { font-family: var(--display); font-variation-settings: "wdth" 78; font-weight: 850;
+      background: linear-gradient(90deg, #ffb347, #ff6a3d 55%, var(--dorado)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .integrante.card { transition: transform .45s var(--resorte), border-color .3s, box-shadow .45s; }
+    .integrante.card:hover { transform: translateY(-6px); border-color: rgba(255,140,60,.5); box-shadow: 0 30px 60px -30px rgba(255,106,61,.55); }
+    .integrante .avatar { transition: box-shadow .45s; }
+    .integrante.card:hover .avatar { box-shadow: 0 0 0 4px rgba(255,106,61,.25), 0 0 40px -4px rgba(255,106,61,.7); }
+
+    @media (max-width: 1000px) { .guia, .guia.guia-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 600px) {
+      .guia, .guia.guia-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .guia:not(.guia-4) .guia-paso:last-child { grid-column: 1 / -1; }
+      .guia-paso { padding: 10px; gap: 10px; border-radius: 14px; }
+      .guia-ico { width: 38px; height: 38px; box-shadow: 0 0 0 3px rgba(255,106,61,.06); }
+      .guia-ico svg { width: 19px; height: 19px; }
+      .guia-paso b { font-size: 13.5px; gap: 5px; }
+      .guia-paso b i { font-size: 15px; }
+      .guia-paso span:not(.guia-ico) { display: none; }
+      .encabezado-pagina::before { width: 300px; left: -60px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .guia-paso:hover .guia-ico, .paso-metodo:hover .guia-ico { animation: none; } }
+
     /* ====== PÁGINA DATOS ====== */
     .datos-rejilla { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
     .datos-columna { display: flex; flex-direction: column; gap: 20px; }
@@ -1934,6 +2022,11 @@
         </div>
         <button class="boton-chico boton-ayuda" id="botonTour">❔ ¿Cómo se usa?</button>
       </header>
+      <div class="guia" aria-label="Cómo se usa">
+        <div class="guia-paso"><span class="guia-ico" data-icono="buscar"></span><div><b><i>1</i>Busca tu municipio</b><span>Escribe su nombre en el buscador</span></div></div>
+        <div class="guia-paso"><span class="guia-ico" data-icono="calendario"></span><div><b><i>2</i>Elige el periodo</b><span>Un año, un mes o los 25 años</span></div></div>
+        <div class="guia-paso"><span class="guia-ico" data-icono="cursor"></span><div><b><i>3</i>Haz clic en el mapa</b><span>Mira sus cifras en el panel</span></div></div>
+      </div>
 
       <div class="barra-herramientas">
         <div class="buscador" role="search">
@@ -2059,6 +2152,11 @@
         </div>
         <div class="chip-lugar" data-chip></div>
       </header>
+      <div class="guia" aria-label="Cómo se usa">
+        <div class="guia-paso"><span class="guia-ico" data-icono="filas"></span><div><b><i>1</i>Cada fila es un año</b><span>De 2001 hasta hoy</span></div></div>
+        <div class="guia-paso"><span class="guia-ico" data-icono="cuadros"></span><div><b><i>2</i>Cada cuadro es un mes</b><span>Más oscuro = más fuego</span></div></div>
+        <div class="guia-paso"><span class="guia-ico" data-icono="cursor"></span><div><b><i>3</i>Haz clic en un cuadro</b><span>Verás su detalle al lado</span></div></div>
+      </div>
 
       <div class="barra-herramientas">
         <div class="grupo-herramienta">
@@ -2134,6 +2232,11 @@
         </div>
         <div class="chip-lugar" data-chip></div>
       </header>
+      <div class="guia" aria-label="Cómo se usa">
+        <div class="guia-paso"><span class="guia-ico" data-icono="alerta"></span><div><b><i>1</i>Mira el color</b><span>Rojo, amarillo o verde</span></div></div>
+        <div class="guia-paso"><span class="guia-ico" data-icono="escala"></span><div><b><i>2</i>Compara con lo normal</b><span>Este año frente a un año típico</span></div></div>
+        <div class="guia-paso"><span class="guia-ico" data-icono="escudo"></span><div><b><i>3</i>Prepárate a tiempo</b><span>Antes de que empiece la temporada</span></div></div>
+      </div>
       <!-- Cartel de alerta: se entiende de un vistazo -->
       <div class="cartel" id="cartel">
         <div class="cartel-texto">
@@ -2225,6 +2328,12 @@
           <p>Sube los archivos de la NASA y la página hace todo el proceso: limpia, cuenta los focos, armoniza MODIS y VIIRS y actualiza el mapa, el calendario y la alerta.</p>
         </div>
       </header>
+      <div class="guia guia-4" aria-label="Cómo se usa">
+        <div class="guia-paso"><span class="guia-ico" data-icono="descargar"></span><div><b><i>1</i>Descarga</b><span>Los archivos de NASA FIRMS</span></div></div>
+        <div class="guia-paso"><span class="guia-ico" data-icono="subir"></span><div><b><i>2</i>Sube</b><span>Los ZIP tal como llegan</span></div></div>
+        <div class="guia-paso"><span class="guia-ico" data-icono="engranaje"></span><div><b><i>3</i>Procesa</b><span>Todo en tu computador</span></div></div>
+        <div class="guia-paso"><span class="guia-ico" data-icono="nube"></span><div><b><i>4</i>Publica</b><span>En GitHub para todos</span></div></div>
+      </div>
 
       <div class="datos-rejilla">
         <!-- Columna izquierda: pasos -->
@@ -2400,10 +2509,10 @@
           <div><h3>Nuestro método en 4 pasos</h3><p>Cómo convertimos dos satélites distintos en un solo registro comparable</p></div>
         </div>
         <div class="pasos-metodo">
-          <div class="paso-metodo"><span class="num-paso">1</span><b>Contamos focos, no puntos.</b> Dividimos Colombia en cuadros de 11 × 11 km. Cada día que un satélite ve fuego en un cuadro, cuenta un foco. Así MODIS y VIIRS miden lo mismo.</div>
-          <div class="paso-metodo"><span class="num-paso">2</span><b>Armonizamos.</b> Entre 2013 y 2021 los dos satélites funcionaron juntos. Medimos cuánto más ve VIIRS (≈3,5 veces) por región y por mes, y convertimos los años viejos a "equivalente VIIRS".</div>
-          <div class="paso-metodo"><span class="num-paso">3</span><b>Lo comprobamos.</b> Calibramos con 2013–2017 y predijimos 2018–2021 usando solo MODIS. El error nacional fue de apenas 3 %.</div>
-          <div class="paso-metodo"><span class="num-paso">4</span><b>Seguimos sin cortes.</b> Suomi NPP dejó de enviar datos el 2 de noviembre de 2026. Comparamos su reemplazo, NOAA-20, en 2018–2026: ve apenas un 2 % más (r = 0,998). FLARE continúa con NOAA-20 ajustado, con 1,3 % de error en la validación.</div>
+          <div class="paso-metodo"><div class="metodo-top"><span class="guia-ico" data-icono="cuadros"></span><span class="metodo-num">01</span></div><b>Contamos focos, no puntos.</b> Dividimos Colombia en cuadros de 11 × 11 km. Cada día que un satélite ve fuego en un cuadro, cuenta un foco. Así MODIS y VIIRS miden lo mismo.</div>
+          <div class="paso-metodo"><div class="metodo-top"><span class="guia-ico" data-icono="escala"></span><span class="metodo-num">02</span></div><b>Armonizamos.</b> Entre 2013 y 2021 los dos satélites funcionaron juntos. Medimos cuánto más ve VIIRS (≈3,5 veces) por región y por mes, y convertimos los años viejos a "equivalente VIIRS".</div>
+          <div class="paso-metodo"><div class="metodo-top"><span class="guia-ico" data-icono="check"></span><span class="metodo-num">03</span></div><b>Lo comprobamos.</b> Calibramos con 2013–2017 y predijimos 2018–2021 usando solo MODIS. El error nacional fue de apenas 3 %.</div>
+          <div class="paso-metodo"><div class="metodo-top"><span class="guia-ico" data-icono="satelite"></span><span class="metodo-num">04</span></div><b>Seguimos sin cortes.</b> Suomi NPP dejó de enviar datos el 2 de noviembre de 2026. Comparamos su reemplazo, NOAA-20, en 2018–2026: ve apenas un 2 % más (r = 0,998). FLARE continúa con NOAA-20 ajustado, con 1,3 % de error en la validación.</div>
         </div>
         <div class="nos-cifras">
           <div><b>2,3 millones</b><span>detecciones de satélite procesadas</span></div>
@@ -4697,6 +4806,18 @@
     tendencia: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
     libro: '<path d="M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h7z"/>',
+    buscar: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 5 5"/>',
+    cursor: '<path d="M5 3l14 7-6 2-2 6z"/><path d="m13 12 5 5"/>',
+    filas: '<path d="M3 5h18M3 10h18M3 15h18M3 20h18"/>',
+    cuadros: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    descargar: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/>',
+    subir: '<path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v3h16v-3"/>',
+    engranaje: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+    nube: '<path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/><path d="M12 11v6M9.5 13.5 12 11l2.5 2.5"/>',
+    escala: '<path d="M12 3v18M5 21h14M4 8h16"/><path d="M4 8l-2 6a3 3 0 0 0 4 0zM20 8l-2 6a3 3 0 0 0 4 0z"/>',
+    escudo: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+    satelite: '<path d="M8 8l8 8M5.5 10.5l5-5 3 3-5 5zM13.5 18.5l5-5-3-3-5 5z"/><path d="M4 20c0-2 1-3 3-3"/>',
+    check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
   };
   document.querySelectorAll("[data-icono]").forEach(el => {
     el.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONOS[el.dataset.icono] || ""}</svg>`;
@@ -4823,6 +4944,7 @@
     ".mapa-y-panel > *", "#mapa .viaje", ".cal-rejilla > .card", ".cal-lateral > .card", ".alerta-rejilla > .card",
     "#alerta .contenido > .card", ".equipo > .card", "#nosotros .contenido > .card", ".datos-columna > .card", ".nav-paginas",
     ".lp-kicker", ".lp-titulo", ".lp-features > .feat", ".flujo-paso", ".lp-cta", ".cartel", ".prevencion",
+    ".guia-paso", ".paso-metodo", ".nos-cifras > div",
   ].join(", ");
   const observador = new IntersectionObserver(entradas => {
     let orden = 0;
