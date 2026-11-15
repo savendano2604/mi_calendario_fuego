@@ -50,7 +50,45 @@
       u.searchParams.set("lang", nuevo);
       location.replace(u.href);
     };
-    if (idioma !== "en") return;
+    // En pantallas táctiles (celular, tablet) no hay mouse: los textos dicen "toca" en vez de "haz clic" / "pasa el mouse"
+    const TACTIL = window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+    window.TACTIL = TACTIL;
+    const EN = idioma === "en";
+    if (!EN && !TACTIL) return;
+    const may = (x, s) => x[0] === x[0].toUpperCase() ? s[0].toUpperCase() + s.slice(1) : s;
+    const TOQUE = [
+      // español: textos completos primero
+      [/^Pasa el mouse para ver el número ·$/, ""],
+      [/^haz clic$/, "Toca"],
+      [/^en un cuadro \(o en un año\) para ver su detalle a la derecha$/, "un cuadro (o un año) para ver su detalle"],
+      [/^Arrastra aquí los archivos$/, "Toca aquí para elegir los archivos"],
+      [/^Verás su detalle al lado$/, "Verás su detalle abajo"],
+      [/^You'll see its details on the side$/, "You'll see its details below"],
+      [/^o haz clic para elegirlos · /, ""],
+      [/ · pasa el mouse para un resumen rápido/, ""],
+      [/\(otro clic vuelve al año completo\)/, "(tócalo otra vez para volver al año completo)"],
+      [/Pasa el mouse por las barras\./, "Toca una barra para ver su año."],
+      [/, y luego en un mes/, ", y luego un mes"],
+      [/\b([Pp])asa el (?:cursor|mouse) (?:sobre|por) /g, (x) => may(x, "toca ")],
+      [/\b([Pp])asa el (?:cursor|mouse)/g, (x) => may(x, "toca")],
+      [/\b([Hh])az clic en (?=(?:el|la|los|las|un|una|uno|unos|cualquier|otro|otra|ese|esa)\b)/g, (x) => may(x, "toca ")],
+      [/\b([Hh])az clic\b/g, (x) => may(x, "toca")],
+      [/\b([Cc])lic para\b/g, (x) => may(x, "toca para")],
+      // inglés
+      [/^Hover to see the number ·$/, ""],
+      [/^click$/, "Tap"],
+      [/^a square \(or a year\) to see its detail on the right$/, "a square (or a year) to see its detail"],
+      [/^Drag the files here$/, "Tap here to choose the files"],
+      [/^or click to choose them · /, ""],
+      [/ · hover for a quick summary/, ""],
+      [/\(click again to go back to the whole year\)/, "(tap it again to go back to the whole year)"],
+      [/Hover over the bars\./, "Tap a bar to see its year."],
+      [/\b([Hh])over over /g, (x) => may(x, "tap ")],
+      [/\b([Hh])over\b/g, (x) => may(x, "tap")],
+      [/\b([Cc])lick on /g, (x) => may(x, "tap ")],
+      [/\b([Cc])lick\b/g, (x) => may(x, "tap")],
+    ];
+    const toque = s => { if (!TACTIL || !s) return s; for (const [re, f] of TOQUE) s = s.replace(re, f); return s; };
 
     // ---------- Meses ----------
     const MES = { enero: "January", febrero: "February", marzo: "March", abril: "April", mayo: "May", junio: "June", julio: "July",
@@ -234,7 +272,7 @@
       "Nuestro método en 3 pasos": "Our method in 3 steps", "Cómo convertimos dos satélites distintos en un solo registro comparable": "How we turn two different satellites into one comparable record",
       "Contamos focos, no puntos.": "We count hotspots, not points.", "Seguimos sin cortes.": "No gaps.",
       "Nuestro método en 4 pasos": "Our method in 4 steps", "Satélite": "Satellite",
-      "Lo que hace FLARE": "What FLARE does",
+      "Lo que hace FLARE": "What FLARE does", "Convenciones": "Legend", "Capas": "Layers",
       "Busca tu municipio": "Find your municipality", "Escribe su nombre en el buscador": "Type its name in the search box",
       "Un año, un mes o los 25 años": "One year, one month or all 25 years",
       "Haz clic en el mapa": "Click on the map", "Mira sus cifras en el panel": "See its numbers in the panel",
@@ -323,7 +361,7 @@
       R("FLARE \\| (.+)", (_, p) => "FLARE | " + T(p)),
       R("(\\d+) años de fuego,", (_, n) => `${n} years of fire,`),
       R("Explora dónde se concentran los focos de fuego de los últimos (\\d+) años, por municipio y por departamento\\.", (_, n) => `Explore where fire hotspots concentrate over the last ${n} years, by municipality and department.`),
-      R("Somos un equipo colombiano de Ingeniería de Sistemas participando en el NASA Space Apps Challenge (\\d+), en el reto", (_, n) => `We are a Colombian Systems Engineering team taking part in the NASA Space Apps Challenge ${n}, in the challenge`),
+      R("Somos un equipo colombiano de Ingeniería Electrónica participando en el NASA Space Apps Challenge (\\d+), en el reto", (_, n) => `We are a Colombian Electronic Engineering team taking part in the NASA Space Apps Challenge ${n}, in the challenge`),
       R("Todos los años \\((\\d+)–(\\d+)\\)", (_, a, b) => `All years (${a}–${b})`),
       R("todos los años \\((\\d+)–(\\d+)\\)", (_, a, b) => `all years (${a}–${b})`),
       R("(\\d{4}) \\(hasta hoy\\)", (_, a) => `${a} (to date)`),
@@ -476,18 +514,21 @@
     const memoria = new Map();
     function T(s) {
       if (!s) return s;
-      if (!LETRA.test(s)) return numeros(s);
       if (memoria.has(s)) return memoria.get(s);
+      const r = toque(EN ? traducir(s) : s);
+      if (memoria.size < 8000) memoria.set(s, r);
+      return r;
+    }
+    function traducir(s) {
+      if (!LETRA.test(s)) return numeros(s);
       let r = EXACTO.get(s);
       if (r === undefined) for (const [re, f] of REGLAS) { const m = s.match(re); if (m) { r = f(...m); break; } }
       if (r === undefined && s.includes(" · ")) {
-        const partes = s.split(" · "), tp = partes.map(T);
+        const partes = s.split(" · "), tp = partes.map(traducir);
         if (tp.some((x, i) => x !== partes[i])) r = tp.join(" · ");
       }
       if (r === undefined) r = s;
-      r = numeros(r);
-      if (memoria.size < 8000) memoria.set(s, r);
-      return r;
+      return numeros(r);
     }
     window.tr = T;
 
@@ -535,7 +576,7 @@
       if (o && typeof o === "object" && Object.getPrototypeOf(o) === Object.prototype) { const r = {}; for (const kk in o) r[kk] = opcion(o[kk], kk); return r; }
       return o;
     };
-    if (window.echarts) {
+    if (window.echarts && EN) {
       const iniciar = echarts.init;
       echarts.init = function (...a) {
         const g = iniciar.apply(this, a), poner = g.setOption.bind(g);
@@ -1238,6 +1279,10 @@
     @media (max-width: 900px) {
       .viaje-años { gap: 3px; height: 160px; }
       .vb-año { font-size: 9px; }
+      /* solo cada 5 años (2001, 2006, 2011, 2016, 2021, 2026) para que se lean */
+      .vb:not(:nth-child(5n+1)) .vb-año { visibility: hidden; }
+      .vb-año { font-size: 11px; font-weight: 600; }
+      .vb.activa .vb-año { color: var(--dorado); }
       .vb-hito { display: none; }
       .fichas { grid-template-columns: repeat(6, minmax(0, 1fr)); }
       .viaje .card-cabecera { flex-wrap: wrap; }
@@ -1591,8 +1636,13 @@
     .pv span b { color: #3ccf7a; font-size: 14px; }
     @media (max-width: 800px) {
       .cartel { padding: 20px; } .cartel-luz { width: 56px; height: 56px; }
-      .prevencion-fila { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .pv-reporta { grid-column: span 3; flex-direction: row; justify-content: center; text-align: left; }
+      .prevencion-fila { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .pv-reporta { grid-column: 1 / -1; flex-direction: row; justify-content: center; text-align: left; }
+    }
+    @media (max-width: 560px) {
+      .prevencion { padding: 16px 12px; }
+      .prevencion-fila { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .pv svg { width: 52px; height: 52px; }
     }
 
     /* ====== IDENTIDAD: títulos en Archivo condensada (como un cartel de alerta) ====== */
@@ -1799,6 +1849,31 @@
       .encabezado-pagina::before { width: 300px; left: -60px; }
     }
     @media (prefers-reduced-motion: reduce) { .guia-paso:hover .guia-ico, .paso-metodo:hover .guia-ico { animation: none; } }
+
+    /* ====== MAPA EN CELULAR: controles compactos que no tapan el mapa ====== */
+    .leyenda-boton, .capas-boton { display: none; }
+    @media (max-width: 700px) {
+      #mapa-leaflet { height: 72vh; min-height: 420px; max-height: 620px; }
+      .leyenda { width: auto !important; padding: 0 !important; overflow: hidden; }
+      .leyenda-boton { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--blanco);
+        font: 700 12.5px "Inter", sans-serif; padding: 8px 12px; cursor: pointer; }
+      .leyenda-boton i { font-style: normal; transition: transform .25s; }
+      .leyenda.abierta .leyenda-boton i { transform: rotate(180deg); }
+      .leyenda-cuerpo { display: none; padding: 0 12px 10px; width: 170px; max-height: 46vh; overflow-y: auto; }
+      .leyenda.abierta .leyenda-cuerpo { display: block; }
+      .leyenda .clase { margin: 2px 0; }
+      .info-card { max-width: 150px !important; padding: 8px 10px !important; font-size: 11.5px !important; line-height: 1.35; }
+      .info-card .titulo { font-size: 13.5px; }
+      .info-card .valor { font-size: 18px; }
+      .info-card.vacia { display: none; }
+      .capas-plegable { padding: 0 !important; font-size: 12.5px !important; }
+      .capas-boton { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--blanco);
+        font: 700 12.5px "Inter", sans-serif; padding: 8px 12px; cursor: pointer; }
+      .capas-boton i { font-style: normal; transition: transform .25s; }
+      .capas-plegable.abierta .capas-boton i { transform: rotate(180deg); }
+      .capas-plegable .leaflet-control-layers-list { display: none; padding: 0 12px 10px; }
+      .capas-plegable.abierta .leaflet-control-layers-list { display: block; }
+    }
 
     /* ====== PÁGINA DATOS ====== */
     .datos-rejilla { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -2438,7 +2513,7 @@
         <div>
           <div class="paso"><span class="num-paso">05</span> Nosotros</div>
           <h2>El equipo detrás de <span>FLARE</span></h2>
-          <p>Somos un equipo colombiano de Ingeniería de Sistemas participando en el NASA Space Apps Challenge 2026, en el reto <b>"Harmonization of MODIS and VIIRS Hot Spots"</b>.</p>
+          <p>Somos un equipo colombiano de Ingeniería Electrónica participando en el NASA Space Apps Challenge 2026, en el reto <b>"Harmonization of MODIS and VIIRS Hot Spots"</b>.</p>
         </div>
       </header>
 
@@ -2900,12 +2975,14 @@
     if (!this._div) return;
     if (!tipo || !datosActuales) {
       this._div.innerHTML = `<div class="suave">Pasa el cursor sobre un ${municipiosVisibles() ? "municipio" : "departamento"}</div>`;
+      this._div.classList.add("vacia");
       return;
     }
     const u = UNIDADES[tipo].lista[id];
     const valor = valorDe(tipo, id);
     const parte = datosActuales.total ? valor / datosActuales.total * 100 : 0;
     const puesto = puestoDe(tipo, id);
+    this._div.classList.remove("vacia");
     this._div.innerHTML = `
       <div class="titulo">${u.nombre}</div>
       ${tipo === "mun" && u.depto ? `<div class="suave">${u.depto}</div>` : ""}
@@ -2924,7 +3001,20 @@
   // 8. LEYENDA — esquina inferior derecha
   // =====================================================================
   const leyenda = L.control({ position: "bottomright" });
-  leyenda.onAdd = function () { this._div = L.DomUtil.create("div", "leyenda"); return this._div; };
+  // En celular la leyenda se pliega en un botón "Convenciones" para no tapar el mapa
+  leyenda.onAdd = function () {
+    this._caja = L.DomUtil.create("div", "leyenda");
+    this._caja.innerHTML = `<button type="button" class="leyenda-boton" aria-expanded="false"><span aria-hidden="true">🎨</span><span>Convenciones</span><i aria-hidden="true">▾</i></button><div class="leyenda-cuerpo"></div>`;
+    this._div = this._caja.querySelector(".leyenda-cuerpo");
+    const boton = this._caja.querySelector(".leyenda-boton");
+    boton.addEventListener("click", () => {
+      const abierta = this._caja.classList.toggle("abierta");
+      boton.setAttribute("aria-expanded", abierta ? "true" : "false");
+    });
+    L.DomEvent.disableClickPropagation(this._caja);
+    L.DomEvent.disableScrollPropagation(this._caja);
+    return this._caja;
+  };
   leyenda.dibujar = function () {
     if (!this._div) return;
     let html = "";
@@ -2953,6 +3043,22 @@
   // 9. CONTROL DE CAPAS — esquina superior derecha
   // =====================================================================
   const controlCapas = L.control.layers(basesOscuras, { "🔥 Mapa de calor": capaCalor }, { position: "topright", collapsed: false }).addTo(mapa);
+  // En celular las capas se pliegan detrás de un botón para no tapar el mapa
+  (() => {
+    const caja = controlCapas.getContainer();
+    const boton = L.DomUtil.create("button", "capas-boton");
+    boton.type = "button";
+    boton.setAttribute("aria-expanded", "false");
+    boton.innerHTML = `<span aria-hidden="true">🗂️</span><span>Capas</span><i aria-hidden="true">▾</i>`;
+    caja.insertBefore(boton, caja.firstChild);
+    caja.classList.add("capas-plegable");
+    boton.addEventListener("click", ev => {
+      ev.preventDefault();
+      const abierta = caja.classList.toggle("abierta");
+      boton.setAttribute("aria-expanded", abierta ? "true" : "false");
+    });
+    L.DomEvent.disableClickPropagation(caja);
+  })();
   mapa.on("overlayadd overlayremove", () => { refrescarEstilos(); leyenda.dibujar(); tarjeta.mostrar(null); });
 
   // =====================================================================
